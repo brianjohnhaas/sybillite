@@ -1,0 +1,38 @@
+/******************
+ These next four rules taken, with permission, from here:
+    http://ryanfait.com/resources/footer-stick-to-bottom-of-page/
+    
+ ******************/
+
+* {
+    margin: 0;
+}
+html, body {
+    height: 100%;
+}
+.wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    
+    /* "The negative margin should always equal to the full height 
+        of the footer (including any padding or borders you may add)." 
+    */
+    margin: 0 auto -71px;
+}
+.footer, .push {
+    height: 50px;
+}
+
+/***************/
+
+div.footer {
+    /* this needs to match the bottom gradient of the header.  not sure
+       yet how to have this done automatically in JQuery UI */
+    background-color: rgb(59,59,53);
+    border-top: 1px solid rgb(170,170,170);
+    font-weight: bold;
+    color: rgb(255,255,255);
+    padding: 5px 10px 5px 10px;
+    min-width: 900px;
+}
