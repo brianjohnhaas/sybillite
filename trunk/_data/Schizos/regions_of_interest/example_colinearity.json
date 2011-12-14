@@ -1,0 +1,12 @@
+{
+    "id" : "example_colinearity",
+    "project" : "Schizos",
+    "label" : "Clean synteny",
+    "orgsOrder" : [ "SP2", "SO3", "SJ1" ],
+    "orgsSelected" : [ "SP2", "SO3" ],
+    "scaffold" : "SP2;7000000090838467",
+    "range" : "600000-1700000",
+    "flank" : 0,
+    "pixelsPerKb" : 1,
+    "description" : "Here a long region of synteny exists between the two displayed genomes with little rearrangement."
+}

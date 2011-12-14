@@ -1,0 +1,12 @@
+{
+    "id" : "example_inversion",
+    "project" : "Schizos",
+    "label" : "Short inversion amid a syntenic region",
+    "orgsOrder" : [ "SP2", "SO3", "SJ1" ],
+    "orgsSelected" : [ "SP2", "SO3", "SJ1" ],
+    "scaffold" : "SP2;7000000090838467",
+    "range" : "200000-300000",
+    "flank" : 0,
+    "pixelsPerKb" : 10,
+    "description" : "This shows a region of good synteny across three genomes but with an inversion in SO3 starting at coordinate 2315k, made up of 6 genes.  The apparent deletion in SJ1 of the gene found in S03 at 2349K may just be an assembly artifact where the gene is between existing contigs."
+}
