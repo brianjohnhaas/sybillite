@@ -1,0 +1,159 @@
+#!/usr/bin/env perl 
+
+=head1 NAME
+
+configure - checks that your system is ready for install
+
+=head1 SYNOPSIS
+
+USAGE: configure 
+            --prefix=/install/here/ 
+
+=head1 OPTIONS
+
+B<--prefix,-p>
+    This is the base directory where you want the system installed.  This should
+    be under your web server area.
+
+B<--force,-f>
+    Optional.  Pass '1' force the script to install when possible, even if preliminary 
+    checks fail (such as missing Perl modules).
+
+B<--log,-l> 
+    Log file
+
+B<--help,-h>
+    This help message
+
+=head1  DESCRIPTION
+
+
+
+=cut
+
+use warnings;
+use strict;
+use Getopt::Long qw(:config no_ignore_case no_auto_abbrev pass_through);
+use Pod::Usage;
+use Term::ANSIColor;
+
+$|++;
+
+my %options = ();
+my $results = GetOptions (\%options, 
+                          'prefix|p=s',
+                          'force|f=s',
+                          'log|l=s',
+                          'help|h') || pod2usage();
+
+## display documentation
+if( $options{'help'} ){
+    pod2usage( {-exitval => 0, -verbose => 2, -output => \*STDERR} );
+}
+
+## make sure everything passed was peachy
+&check_parameters(\%options);
+
+## open the log if requested
+my $logfh;
+if (defined $options{log}) {
+    open($logfh, ">$options{log}") || die "can't create log file: $!";
+}
+
+
+
+my $perl_modules_missing = &check_perl_modules();
+
+## handle all cases of reporting to the user regarding missing perl modules, if any
+if ( scalar @$perl_modules_missing ) {
+    if ( $options{force} ) {
+        _log("WARN: There were missing perl modules but --force was used, so continuing");
+    } else {
+        _log("ERROR: Configure failed: the following perl modules are missing:");
+        
+        for ( @$perl_modules_missing ) {
+            _log("ERROR:\t$_");
+        }
+        
+        exit(1);
+    }
+    
+} else {
+    _log( "INFO: all perl modules required have been found" );
+}
+
+
+
+
+
+
+
+exit(0);
+
+
+sub check_perl_modules {
+    ## let's start by checking for the modules we need
+    my @modules_to_check = qw( 
+        Config::IniFiles
+        Data::Dumper
+        File::Basename
+        File::Copy
+        HTML::Template
+        JSON
+        URI::Escape
+    );
+    my @modules_not_found;
+
+    _log("INFO: checking necessary perl modules:");
+
+    for ( @modules_to_check ) {
+        my $formed = $_;
+        $formed =~ s|::|/|g;
+        $formed =~ s|$|.pm|g;
+
+        print "\t$_\t:";
+        eval {require $formed};
+
+        if ( $@ ) {
+            print color 'bold red';
+            print " not found\n";
+            push @modules_not_found, $_;
+        } else {
+            print color 'bold green';
+            print " found\n";
+        }
+
+        print color 'reset';
+    }
+
+    return \@modules_not_found;
+}
+
+sub _log {
+    my $msg = shift;
+    
+    if ( $logfh ) {
+        print $logfh "$msg\n";
+    } else {
+        print STDERR "$msg\n";
+    }
+}
+
+sub check_parameters {
+    my $options = shift;
+    
+    ## make sure required arguments were passed
+    my @required = qw( prefix );
+    for my $option ( @required ) {
+        unless  ( defined $$options{$option} ) {
+            die "--$option is a required option";
+        }
+    }
+    
+    ##
+    ## you can do other things here, such as checking that files exist, etc.
+    ##
+    
+    ## handle some defaults
+    #$options{optional_argument2}   = 'foo'  unless ($options{optional_argument2});
+}
