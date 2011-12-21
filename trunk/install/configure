@@ -161,6 +161,8 @@ sub check_perl_modules {
         Data::Dumper
         File::Basename
         File::Copy
+        GD
+        GD::SVG
         HTML::Template
         JSON
         URI::Escape
