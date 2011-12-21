@@ -159,6 +159,7 @@ sub check_perl_modules {
     my @modules_to_check = qw( 
         Config::IniFiles
         Data::Dumper
+        DBD::SQLite
         File::Basename
         File::Copy
         GD
