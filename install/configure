@@ -122,6 +122,8 @@ if ( ! -d "$options{prefix}/data" ) {
     _log("INFO: data directory already found. Skipping it.");
 }
 
+print $shell_fh "chmod 777 $options{prefix}/tmp\n";
+
 close $shell_fh;
 
 chmod(0755, "$installer");
