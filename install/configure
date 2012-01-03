@@ -156,6 +156,8 @@ exit(0);
 
 sub check_perl_modules {
     ## let's start by checking for the modules we need
+    ## WARNING: Any changes to this list of modules should be reflected within
+    #   the install documentation.
     my @modules_to_check = qw( 
         Config::IniFiles
         Data::Dumper
