@@ -1,4 +1,4 @@
-#summary Outline and links for all SybilLite documentation
+#summary Start here. Outline and links for all SybilLite documentation
 
 = Introduction =
 
