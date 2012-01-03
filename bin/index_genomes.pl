@@ -2,9 +2,7 @@
 
 =head1 DESCRIPTION
 
-This script also creates the SQLite3 file for a given project from its GFF.
-
-Results are returned in a JSON object.
+This script creates the SQLite3 file for a given project from its GFF.
 
 Initialization of the search database assumes that the 9th column of each GFF3
 file has ID and Name attributes.
