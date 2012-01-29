@@ -57,7 +57,7 @@ function navigateToGene(gene_id) {
     });
 }
 
-// callback function that handles mose of navigateToGene()
+// callback function that handles most of navigateToGene()
 function navigateToGene_cb( gene ) {
     var new_range = { fmin: 0, fmax: 0 };
 
