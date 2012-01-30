@@ -39,7 +39,7 @@ function checkForm( theForm ) {
 
 // uses the current settings of the display panel but shifts to the
 //  coordinates of a given gene_id, with some flanking area on the 
-//  sides (determined by the current zoom level
+//  sides (determined by the current zoom level)
 function navigateToGene(gene_id) {
     // get the coordinates of the gene
     //  the AJAX call within this has a callback that does the rest
@@ -480,6 +480,8 @@ $(function() {
     $( "#adv_opts_d" ).closest('.ui-dialog').detach().appendTo('form');
     $( "#molecule_selection_d" ).closest('.ui-dialog').detach().appendTo('form');
 
+
+
     $( "#adv_opts_btn" ).click( function() {
                                         if ( $("#adv_opts_d").dialog('isOpen') ) {
                                             $( "#adv_opts_d" ).dialog('close');
@@ -565,31 +567,43 @@ $(function() {
 
 
 // things within this will start once the DOM is loaded.
+
+// if the URL API is used the form with all its hidden elements is submitted
+//  else it displays the regions of interest for the current project
 $(document).ready(function() {
     
-    // clear the result panel and display the loading indicator
-    //$('#result_panel').empty();
-    showProgressIndicator();
+    if ( $("#url_api_used").val() == 1 ) {
     
-    // load any regions of interest and populate the display
-    $.ajax({
-        url: './parse_roi.cgi',
-        dataType: 'json',
-        data: { project: $('#project').val() },
-        success: function(data, textStatus, jqXHR) {
-            if ( $('#graphical_roi_view').val() == 1 ) {
-                drawRegionsOfInterestGraphical(data);
-            } else {
-                drawRegionsOfInterestTabular(data);
+        checkForm( document.forms["frm_panel"] );
+    
+    } else {
+    
+        // clear the result panel and display the loading indicator
+        //$('#result_panel').empty();
+        showProgressIndicator();
+    
+        $("#url_api_used").val('');
+
+        // load any regions of interest and populate the display
+        $.ajax({
+            url: './parse_roi.cgi',
+            dataType: 'json',
+            data: { project: $('#project').val() },
+            success: function(data, textStatus, jqXHR) {
+                if ( $('#graphical_roi_view').val() == 1 ) {
+                    drawRegionsOfInterestGraphical(data);
+                } else {
+                    drawRegionsOfInterestTabular(data);
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                alert("Failed to draw regions of interest! textStatus: (" + textStatus +
+                      ") and errorThrown: (" + errorThrown + ")");
+
+                hideProgressIndicator();
             }
-        },
-        error: function(jqXHR, textStatus, errorThrown){
-            alert("Failed to draw regions of interest! textStatus: (" + textStatus +
-                  ") and errorThrown: (" + errorThrown + ")");
-                  
-            hideProgressIndicator();
-        }
-    });
+        });
+    }
 });    
 
 
