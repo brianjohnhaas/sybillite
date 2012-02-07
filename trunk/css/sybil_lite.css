@@ -59,7 +59,7 @@ div#panel_actions {
         /* we do a white border here because there is also a 
            border on hover and we don't want a pixel shift */
         border: 1px solid rgb(255,255,255);
-        margin-left: 45px;
+        margin-left: 40px;
         
         /* this assumes a 24x24 icon */
         padding: 3px 5px 3px 28px;
@@ -70,11 +70,17 @@ div#panel_actions {
         display: none;  /* this is shown once an alignment is */
         background: url("../images/camera_24.png") no-repeat left top;
     }
-    li#btn_save_region_menu:hover {
+    li#btn_link_view {
+        display: none; /* this is shown once an alignment is */
+        background: url("../images/link_24.png") no-repeat left top;
+    }
+    li#btn_save_region_menu:hover,
+    li#btn_link_view:hover {
         cursor: pointer;
         border: 1px solid rgb(151,151,151);
     }
     li#quick_search_c {
+        display: none; /* this is shown once an alignment is */
         background: url("../images/search_icon_24.jpg") no-repeat left top;
     }
     
@@ -142,16 +148,19 @@ div#result_panel {
         border: none;
     }
 div#save_roi_panel,
-div#search_form_panel_results {
+div#search_form_panel_results,
+div#link_view_panel {
     display: none;
     padding-left: 25px;
 }
     div#save_roi_panel h2,
-    div#search_form_panel_results h2 {
+    div#search_form_panel_results h2,
+    div#link_view_panel h2 {
         margin: 15px 0 10px 0;
     }
     div#save_roi_panel p,
-    div#search_form_panel_results p {
+    div#search_form_panel_results p,
+    div#link_view_panel p {
         margin: 10px 0 10px 0;
     }
     div#save_roi_panel label {

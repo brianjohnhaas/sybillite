@@ -1,3 +1,29 @@
+// this object is used to maintain the dynamic URL that can be copied by
+//  the user as they navigate the interface.
+var trackedURL = new Object();
+    trackedURL.host = window.location.host;
+    
+    // these are set later
+    trackedURL.project = '';
+    trackedURL.orgsOrder = '';
+    trackedURL.orgsSelected = '';
+    trackedURL.scaffold = '';
+    trackedURL.range = '';
+
+function setTrackedURL() {
+    trackedURL.project         = $('#project').val();
+    trackedURL.orgsOrder       = $('#orgsOrder').val();
+    trackedURL.orgsSelected    = $('#orgsSelected').val();
+    trackedURL.scaffold        = $('#scaffold').val();
+    trackedURL.range           = $('#range').val();
+    
+    $('link_view_url').text( trackedURL.host + '/sybil_lite.cgi?' +
+                             'project=' + trackedURL.project + '&' +
+                             'orgsOrder=' + trackedURL.orgsOrder + '&' +
+                             'orgsSelected=' + trackedURL.orgsSelected + '&' +
+                             'scaffold=' + trackedURL.scaffold + '&' +
+                             'range=' + trackedURL.range );
+}
 
 function checkForm( theForm ) {
     
@@ -11,6 +37,8 @@ function checkForm( theForm ) {
     $('#result_panel').empty();
     showProgressIndicator();
     
+    setTrackedURL();
+    
     $.ajax({
         url: './draw_alignment.cgi',
         dataType: 'json',
@@ -21,7 +49,9 @@ function checkForm( theForm ) {
             
             // display the control elements
             $(".alignment_control_elements").show();
+            $("#quick_search_c").show();
             $("#btn_save_region_menu").show();
+            $("#btn_link_view").show();
             
             // set the range form control value to that returned by the call
             // these retain any scroll/zoom
@@ -513,6 +543,9 @@ $(function() {
     $( "#btn_save_region_menu" ).click( function () {
                                             $("#save_roi_panel").slideToggle("fast");
                                         });
+    $( "#btn_link_view" ).click( function () {
+                                            $("#link_view_panel").slideToggle("fast");
+                                        });    
     
     $("input#search_term").autocomplete({
         source: "./search_genomes.cgi?project=" + $("#project").val(),
