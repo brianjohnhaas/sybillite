@@ -17,12 +17,14 @@ function setTrackedURL() {
     trackedURL.scaffold        = $('#scaffold').val();
     trackedURL.range           = $('#range').val();
     
-    $('link_view_url').text( trackedURL.host + '/sybil_lite.cgi?' +
+    $('#link_view_url').val( 'http://' + trackedURL.host + '/sybil_lite.cgi?' +
                              'project=' + trackedURL.project + '&' +
                              'orgsOrder=' + trackedURL.orgsOrder + '&' +
                              'orgsSelected=' + trackedURL.orgsSelected + '&' +
                              'scaffold=' + trackedURL.scaffold + '&' +
                              'range=' + trackedURL.range );
+    
+    //alert("I just set the text.");
 }
 
 function checkForm( theForm ) {
@@ -36,8 +38,6 @@ function checkForm( theForm ) {
     // clear the result panel and display the loading indicator
     $('#result_panel').empty();
     showProgressIndicator();
-    
-    setTrackedURL();
     
     $.ajax({
         url: './draw_alignment.cgi',
@@ -57,6 +57,8 @@ function checkForm( theForm ) {
             // these retain any scroll/zoom
             $('#range').val( data.range );
             $('#pixelsPerKb').val( data.pixels_per_kb );
+            
+            setTrackedURL();
         },
         error: function(jqXHR, textStatus, errorThrown){
             alert("Failed to redraw alignment panel! textStatus: (" + textStatus +
@@ -251,7 +253,7 @@ function zoomPanel( direction ) {
 
     checkForm( document.frm_panel );
     
-    // set the scroll direction back to the default so multiple scrolls don't
+    // set the zoom direction back to the default so multiple zooms don't
     // happen accidentally
     $('#zoom_direction').val('none');
     
