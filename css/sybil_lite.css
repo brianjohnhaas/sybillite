@@ -176,6 +176,10 @@ div#link_view_panel {
     div#save_roi_panel button {
         font-size: 90%;
     }
+    input#link_view_url {
+        padding: 3px;
+        width: 500px;
+    }
 span#roi_display_toggle:hover {
     cursor: pointer;
 }
