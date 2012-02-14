@@ -28,14 +28,28 @@ use FindBin;
 use lib ("$FindBin::Bin/../PerlLib");
 use IniReader;
 use SybilLite;
+use Data::Dumper;
 
 my $project = shift || die "ERROR: pass a project as the first parameter";
    $project =~ s/[^A-Za-z0-9\-]/_/g;   ## a wee bit of sanitization
 
 ## load configurations
-my $SybilLiteConf = new IniReader("$FindBin::Bin/../conf/SybilLite.conf");
+my $SybilLiteConfFile = "$FindBin::Bin/../conf/SybilLite.conf";
+unless (-e $SybilLiteConfFile) {
+    die "Error, cannot find SybilLite main configuration file: $SybilLiteConfFile";
+}
+my $SybilLiteConf = new IniReader($SybilLiteConfFile);
 my $project_conf_file = $SybilLiteConf->get_value($project, "Conf_file");
+unless ($project_conf_file) {
+    die Dumper($SybilLiteConf) . "Error, cannot find project configuration file for project $project"; 
+}
+
+unless (-e $project_conf_file) {
+    die "Error, cannot locate project conf file for project: $project_conf_file";
+}
+
 my $conf = new IniReader("$FindBin::Bin/../conf/$project_conf_file");
+
 
 ## key = org abbreviation, value = GFF3 path
 my $orgs = get_organisms_from_conf( $conf );
@@ -75,12 +89,17 @@ exit(0);
 sub get_organisms_from_conf {
     my $config = shift;
     
+    
+
     my @organisms = split (/,/, $conf->get_value("Meta", "Organisms"));
     
     my $data = {};
     
+    print STDERR "Got organisms: @organisms\n";
+
     foreach my $org (@organisms) {
         $org =~ s/\s+//g;
+        
         $$data{$org} = $conf->get_value("Genes", $org);
     }
     
