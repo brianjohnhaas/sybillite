@@ -54,7 +54,12 @@ my $conf = new IniReader("$FindBin::Bin/../conf/$project_conf_file");
 ## key = org abbreviation, value = GFF3 path
 my $orgs = get_organisms_from_conf( $conf );
 
-my $db_file = "$FindBin::Bin/../data/$project/annotation.db";
+my $data_dir = "$FindBin::Bin/../data/$project/";
+unless (-d $data_dir) {
+    mkdir $data_dir or die "Error, cannot mkdir $data_dir";
+}
+
+my $db_file = "$data_dir/annotation.db";
 
 ## create the db index if it doesn't exist already
 my $next_gene_id = 1;
