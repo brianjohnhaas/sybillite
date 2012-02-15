@@ -20,6 +20,11 @@ use FindBin;
 use lib ("$FindBin::Bin");
 use MultiPanel;
 
+my $DEBUG = 0;
+my $LOG_OFH;
+
+
+my $BREAK_NONSYNTENIC_CONTIG_RANGE = 10000; # distance between two syntenic genes that's too great to draw as a single contig range.
 
 ## Modified from J. Crabtree's testMultiPanel.pl script, bhaas Wed Sep 24 14:28:13 EDT 2008
 
@@ -69,7 +74,16 @@ sub createSyntenyPlot {
 	my $miscFeaturesGff3 = $options{"miscFeaturesGff3"};
 
 	my $showAllVsAll = $options{"showAllVsAll"} || 0;
+
+    unless ($DEBUG) { # retain any hard-coded setting
+        $DEBUG = $options{"DEBUG"} || 0;
+    }
 	
+    if ($DEBUG) {
+        open ($LOG_OFH, ">tmp/synview.log") or die $!;
+    }
+    
+
 =deprecated
 	
 	my %HIDE_MATCHES;
@@ -99,7 +113,7 @@ sub createSyntenyPlot {
 	
 	## parse the input files
 	my %syn_gene_pairs = &parse_syn_gene_pairs($synGenePairs, $refScaffold);
-	 
+	
 	my %scaffold_to_gene_structs = &parse_gene_coords($gff3Files);
 	
 	
@@ -112,28 +126,39 @@ sub createSyntenyPlot {
 	## assign reference scaffold range coordinates.
 	my ($refScaffLend, $refScaffRend) = &assign_reference_scaffold_range_coordinates($refScaffold, $refScaffoldRange, \%scaffold_lengths);
 		
+    print $LOG_OFH  "RefScaff: $refScaffold ($refScaffLend - $refScaffRend)\n" if $DEBUG;
+    
 	## pull out the syntenic scaffolds and genes found syntenic to the reference scaffold range of interest.
 	my %syntenic_scaffolds_to_genes = &extract_scaffolds_syntenic_to_ref_scaffold($refScaffold, [$refScaffLend, $refScaffRend], \%scaffold_to_gene_structs, \%gene_acc_to_gene_struct, \%syn_gene_pairs);
-	
 
+    #print $LOG_OFH "\n\n## Syntenic scaffolds to genes:\n" . Dumper(\%syntenic_scaffolds_to_genes) if $DEBUG;
+	
+    
 	## Extract syn region ranges:
 	my ($ref_org, $trash) = split (/;/, $refScaffold);
 	my %syn_org_to_scaffolds = ( $ref_org => [$refScaffold] ); # init to ref info.
 	my %syn_contig_to_seq_range  = ( $refScaffold => { lend => $refScaffLend, rend => $refScaffRend, ref_lend => $refScaffLend, ref_rend => $refScaffRend } ); # init reference info.
 	&assign_syntenic_contig_seq_ranges(\%syntenic_scaffolds_to_genes, \%syn_org_to_scaffolds, \%syn_gene_pairs, \%syn_contig_to_seq_range, \%gene_acc_to_gene_struct, $refScaffold, [$refScaffLend, $refScaffRend]);	
 	
-	
+	print $LOG_OFH "## Syntenic org to scaffolds: " . Dumper(\%syn_org_to_scaffolds) if $DEBUG;
+    print $LOG_OFH "## Syntenic contig to seq range: " . Dumper(\%syn_contig_to_seq_range) if $DEBUG;
+    
+
 	## organize the order of organism tiers for display
 	
 	my @top_orgs;
 	my @bottom_orgs;
 	&organize_order_of_organism_tiers(\%syn_org_to_scaffolds, $ref_org, $refScaffold, $orgsOrder, \@top_orgs, \@bottom_orgs);
 
+    print $LOG_OFH "Ordering of organisms:\n"
+        . "Top_orgs: " . Dumper(\@top_orgs) . "\n"
+        . "Bottom_orgs: " . Dumper(\@bottom_orgs) . "\n" if $DEBUG;
+    
 	## get other misc features if they are provided:
 	my %scaffold_to_misc_features;
-	if ($miscFeaturesGff3) {
-		%scaffold_to_misc_features = &parse_misc_features_in_range($miscFeaturesGff3, \%syn_contig_to_seq_range);
-	}
+	#if ($miscFeaturesGff3) {
+	#	%scaffold_to_misc_features = &parse_misc_features_in_range($miscFeaturesGff3, \%syn_contig_to_seq_range);
+	#}
 			
 	
 	#####################################################################
@@ -167,8 +192,10 @@ sub createSyntenyPlot {
 			
 			unless (exists $syn_org_to_scaffolds{$org}) { next; }
 			
-			my @scaffolds = @{$syn_org_to_scaffolds{$org}};
-			
+			my @scaffolds = @{$syn_org_to_scaffolds{$org}};  ## warning, scaffold names may be mutated if sectioned by synteny brekaks
+            
+            print $LOG_OFH "Processing scaffold tier: @scaffolds\n" if $DEBUG;
+            		
 			my @scaff_tiers;
 			if (scalar @scaffolds == 1 && $scaffolds[0] eq $ref_org) {
 				## no tiering necessary
@@ -181,9 +208,15 @@ sub createSyntenyPlot {
 			
 			foreach my $scaff_tier (@scaff_tiers) {
 				
+
+                my $scaff_tier_counter = 0;
 				my $prev_panel;
 				foreach my $scaffold (@$scaff_tier) {
 					
+                    $scaff_tier_counter++;
+                    print $LOG_OFH "-processing scaff: $scaffold, entry $scaff_tier_counter in tier.\n" if $DEBUG;
+                    
+
 					my $range_coords_href = $syn_contig_to_seq_range{$scaffold};
 					my ($rangeLend, $rangeRend) = ($range_coords_href->{lend}, $range_coords_href->{rend});
 					my $length = $rangeRend - $rangeLend + 1;
@@ -192,8 +225,12 @@ sub createSyntenyPlot {
 																									   $refScaffold, [$range_coords_href->{ref_lend}, $range_coords_href->{ref_rend}],
 																									   \%scaffold_to_gene_structs,
 																									   \%syn_gene_pairs,
-																									   \%gene_acc_to_gene_struct);
+																									   \%gene_acc_to_gene_struct, 
+                                                                                                       \%syntenic_scaffolds_to_genes);
 					
+                    
+                    print $LOG_OFH "-setting syn_orient to $syn_orient for $scaffold\n" if $DEBUG;
+
 					$scaff_orients{$scaffold} = $syn_orient; # store for later so we know if the gene matches are same vs. inverted
 					
 					my ($draw_lend, $draw_rend);
@@ -234,10 +271,19 @@ sub createSyntenyPlot {
 					#####################################
 					## Draw each of the gene features
 					my @feats;
-					foreach my $gene (@{$scaffold_to_gene_structs{$scaffold}}) {
+                    my $orig_scaff_name = $scaffold;
+                    $orig_scaff_name =~ s/\.pt\d+$//g;
+					
+                    print $LOG_OFH "Drawing genes on $scaffold (really $orig_scaff_name)\n" if $DEBUG;
+                    foreach my $gene (@{$scaffold_to_gene_structs{$orig_scaff_name}}) {
 						my ($lend, $rend, $name) = ($gene->{lend}, $gene->{rend}, $gene->{name});
-						unless ($lend < $rangeRend && $rend > $rangeLend) { next; } # no overlap
+						unless ($lend <= $rangeRend && $rend >= $rangeLend) { next; } # no overlap
 						
+
+                        print $LOG_OFH "-drawing $name, $lend-$rend on $scaffold\n" if $DEBUG;
+                        
+                        $gene->{mod_scaff_name} = $scaffold; # includes the .pt\d+ value.
+                        
 						my $gene_orient = $gene->{orient};
 						my $strand = ($gene_orient eq '+') ? 1:-1; #($syn_orient eq $gene_orient) ? 1 : -1;
 						
@@ -312,8 +358,11 @@ sub createSyntenyPlot {
 	## describe the matches between genes:
 	
 	my @matches;
-	#goto skip_matches;
-	my %seen;
+	
+    #goto skip_matches;  ### FOR DEBUGGING
+	
+
+    my %seen;
 	my %orient_swap = ( '+' => '-', '-' => '+');
 
 	## sort genes according to molecule order
@@ -334,8 +383,10 @@ sub createSyntenyPlot {
 			my $geneA = $gene_acc_to_gene_struct{$gene_acc};
 			my $geneB = $gene_acc_to_gene_struct{$syn_acc};
 			
-			my $scaff_A = $geneA->{scaffold};
-			my $scaff_B = $geneB->{scaffold};
+            #my $scaff_A = $geneA->{scaffold};
+            #my $scaff_B = $geneB->{scaffold};
+            my $scaff_A = $geneA->{mod_scaff_name}; 
+			my $scaff_B = $geneB->{mod_scaff_name}; 
 			
 			my ($orgA, $molA) = split (/;/, $scaff_A);
 			my ($orgB, $molB) = split (/;/, $scaff_B);
@@ -360,18 +411,19 @@ sub createSyntenyPlot {
 	
 	@syn_pairs = sort {$a->[1] <=> $b->[1]} @syn_pairs;
 	
-	my %seen;
+    %seen = ();
 	
 	foreach my $syn_pair (@syn_pairs) {
 		
 		my ($gene_pair_aref, $org_pair_val) = @$syn_pair;
 		my ($geneA, $geneB) = @$gene_pair_aref;
 		
-		if ((! $showAllVsAll) && $seen{$geneA}) {  ## include AllVsAll check here.
+		if ((! $showAllVsAll) && $seen{$geneA} && $seen{$geneB}) {  ## include AllVsAll check here.
 			next; 
 		} 
 		else { 
 			$seen{$geneA} = 1; 
+            $seen{$geneB} = 1;
 		}
 		
 		my $geneA_orient = $geneA->{orient};
@@ -563,25 +615,32 @@ sub extract_scaffolds_syntenic_to_ref_scaffold {
 	my %other_scaffolds;
 	
 
-	#print Dumper($syn_gene_pairs_href);
+	#print $LOG_OFH "SYN_GENE_PAIRS: " . Dumper($syn_gene_pairs_href) if $DEBUG;
 	
 	if (exists $scaffold_to_gene_structs_href->{$refScaffold}) {
-	
+        
 		my @ref_genes = @{$scaffold_to_gene_structs_href->{$refScaffold}};
-		foreach my $ref_gene (sort {$a->{acc} cmp $b->{acc}} @ref_genes) {
+		
+        #print $LOG_OFH "Ref genes on scaff: " . Dumper(\@ref_genes) if $DEBUG;
+
+
+        ## Get reference genes in range
+        foreach my $ref_gene (sort {$a->{acc} cmp $b->{acc}} @ref_genes) {
 			my $ref_gene_acc = $ref_gene->{acc};
 			
-			unless ($ref_gene->{lend} < $ref_rend && $ref_gene->{rend} > $ref_lend) { 
+			unless ($ref_gene->{lend} <= $ref_rend && $ref_gene->{rend} >= $ref_lend) { 
 				# no overlap to reference scaffold range of interest.
 				next; 
 			}
 			
-			#print "$ref_gene_acc\n";
+			print $LOG_OFH "$ref_gene_acc in range.\n" if $DEBUG;
 			
+
+            ## Identify those genes found syntenic to reference genes
 			if (my $syn_href = $syn_gene_pairs_href->{$ref_gene_acc}) {
 			
 				my @syn_gene_accs = keys %$syn_href;
-				#print "$ref_gene_acc: @syn_gene_accs\n";
+				print $LOG_OFH "syntenic to: $ref_gene_acc: @syn_gene_accs\n" if $DEBUG;
 				foreach my $syn_gene_acc (@syn_gene_accs) {
 					my $syn_gene = $gene_acc_to_gene_struct_href->{$syn_gene_acc};
 					my $scaffold = $syn_gene->{scaffold};
@@ -724,7 +783,9 @@ sub estimate_synteny_orientation {
 		$ref_scaffold, $ref_coords_aref, 
 		$scaffold_to_gene_structs_href, 
 		$syn_gene_pairs_href,
-		$gene_acc_to_gene_struct_href) = @_;
+		$gene_acc_to_gene_struct_href,
+        $syntenic_scaffold_to_genes_href,
+        ) = @_;
 	
 	my ($syn_lend, $syn_rend) = @$syn_coords_aref;
 	my ($ref_lend, $ref_rend) = @$ref_coords_aref;
@@ -732,8 +793,14 @@ sub estimate_synteny_orientation {
 	my %orient_counts;
 	
 	my @orient_orders;
+    
+    if ($DEBUG) {
+        my @syn_scaffs = keys %$syntenic_scaffold_to_genes_href;
+        print $LOG_OFH "Estimating synteny orientation.  Syn scaffolds include: @syn_scaffs\n";
+    }
+    
 
-	foreach my $syn_gene (sort {$a->{lend}<=>$b->{lend}} @{$scaffold_to_gene_structs_href->{$syn_scaffold}}) {
+	foreach my $syn_gene (sort {$a->{lend}<=>$b->{lend}} @{$syntenic_scaffold_to_genes_href->{$syn_scaffold}}) {
 		my $syn_acc = $syn_gene->{acc};
 		my $syn_gene_lend = $syn_gene->{lend};
 		my $syn_gene_rend = $syn_gene->{rend};
@@ -803,22 +870,45 @@ sub assign_syntenic_contig_seq_ranges {
 	# store the syntenic scaffold info
 	foreach my $syn_scaffold (keys %$syntenic_scaffolds_to_genes_href) {
 		#print "Syn: $syn_scaffold\n";
-		my @syn_genes = sort {$a->{rend}<=>$b->{rend}} @{$syntenic_scaffolds_to_genes_href->{$syn_scaffold}};
-		my $syn_lend = $syn_genes[0]->{lend};
-		my $syn_rend = $syn_genes[$#syn_genes]->{rend};
+		my @syn_genes_all = sort {$a->{rend}<=>$b->{rend}} @{$syntenic_scaffolds_to_genes_href->{$syn_scaffold}};
 		
-		my ($ref_lend, $ref_rend) = &compute_reference_synteny_range(\@syn_genes, $syn_gene_pairs_href, $gene_acc_to_gene_struct_href, $refScaffold, $refScaffCoords_aref);
-		
-		$syn_contig_to_seq_range_href->{$syn_scaffold} = { lend => $syn_lend, 
-														   rend => $syn_rend,
-														   ref_lend => $ref_lend,
-														   ref_rend => $ref_rend,
-													   };
-		
-		my ($org, $scaff_name) = split (/;/, $syn_scaffold);
-		push (@{$syn_org_to_scaffolds_href->{$org}}, $syn_scaffold);
-		
-	}
+        my $range_counter = 0;
+        
+        my @syn_genes_divided = &break_long_nonsyntenic_regions(@syn_genes_all);
+        #my @syn_genes_divided = [@syn_genes_all];
+        
+        foreach my $syn_gene_set_aref (@syn_genes_divided) {
+            
+            my $syn_scaffold_adj = $syn_scaffold; # might mutate it below
+            
+            my @syn_genes = @$syn_gene_set_aref;
+
+            my $syn_lend = $syn_genes[0]->{lend};
+            my $syn_rend = $syn_genes[$#syn_genes]->{rend};
+            
+            my ($ref_lend, $ref_rend) = &compute_reference_synteny_range(\@syn_genes, $syn_gene_pairs_href, $gene_acc_to_gene_struct_href, $refScaffold, $refScaffCoords_aref);
+            
+            if (scalar @syn_genes_divided > 1) {
+                ## partitioned long scaffold into separate regions of synteny
+                
+                $syn_scaffold_adj = "$syn_scaffold.pt" . ++$range_counter;  ## pure hack to make each contig region unique after splitting
+                
+                # store for later on
+                $syntenic_scaffolds_to_genes_href->{$syn_scaffold_adj} = \@syn_genes;
+            }
+            
+            $syn_contig_to_seq_range_href->{$syn_scaffold_adj} = { lend => $syn_lend, 
+                                                                   rend => $syn_rend,
+                                                                   ref_lend => $ref_lend,
+                                                                   ref_rend => $ref_rend,
+                                                               };
+            
+            my ($org, $scaff_name) = split (/;/, $syn_scaffold_adj);
+            push (@{$syn_org_to_scaffolds_href->{$org}}, $syn_scaffold_adj);
+            
+            
+        }
+    }
 	
 	
 	return;
@@ -836,23 +926,23 @@ sub organize_order_of_organism_tiers {
 		my @orgs = split (/,/, $orgsOrder);
 		my $found_ref_org = 0;
 		foreach my $org (@orgs) {
-		  if ($org eq $ref_org) {
-			$found_ref_org = 1;
-		  }
-		  elsif (! $found_ref_org) {
-			push (@$top_orgs_aref, $org);
-		  }
-		  else {
-			push (@$bottom_orgs_aref, $org);
-		  }
+            if ($org eq $ref_org) {
+                $found_ref_org = 1;
+            }
+            elsif (! $found_ref_org) {
+                push (@$top_orgs_aref, $org);
+            }
+            else {
+                push (@$bottom_orgs_aref, $org);
+            }
 		}
-	  }
+    }
 	else {
-	  ## just take one and make it the top org:
-	  my @syn_orgs = grep { $_ !~ /\b$ref_org\b/ } keys %$syn_org_to_scaffolds_href;
-	  my $top = shift @syn_orgs;
-	  @$top_orgs_aref = ($top);
-	  @$bottom_orgs_aref = @syn_orgs;
+        ## just take one and make it the top org:
+        my @syn_orgs = grep { $_ !~ /\b$ref_org\b/ } keys %$syn_org_to_scaffolds_href;
+        my $top = shift @syn_orgs;
+        @$top_orgs_aref = ($top);
+        @$bottom_orgs_aref = @syn_orgs;
 	}
 	
 	return;
@@ -904,7 +994,7 @@ sub parse_misc_features_in_range {
 			if (my $range_info_href = $syn_contig_to_seq_range_href->{$scaffold}) {
 				
 				my ($range_lend, $range_rend) = ($range_info_href->{lend}, $range_info_href->{rend});
-				if ($lend < $range_rend && $rend > $range_lend) {
+				if ($lend <= $range_rend && $rend >= $range_lend) {
 					## within range:
 					
 					push (@{$scaffold_to_misc_features{$scaffold}->{$file}}, { name => $name_info,
@@ -924,6 +1014,39 @@ sub parse_misc_features_in_range {
 	
 	return (%scaffold_to_misc_features);
 }
+
+####
+sub break_long_nonsyntenic_regions {
+    my (@genes) = @_;
+
+    @genes = sort {$a->{lend}<=>$b->{lend}} @genes;
+    
+    my @syn_region_genes;
+    # prime it
+    my $gene = shift @genes;
+    push (@syn_region_genes, [$gene]);
+    
+    while (@genes) {
+        my $next_gene = shift @genes;
+
+        my $prev_cluster = $syn_region_genes[$#syn_region_genes];
+        
+        my $prev_rend = $prev_cluster->[$#$prev_cluster]->{rend};
+        my $curr_lend = $next_gene->{lend};
+        
+        my $delta = $curr_lend - $prev_rend;
+        if ($delta > $BREAK_NONSYNTENIC_CONTIG_RANGE) {
+            push (@syn_region_genes, [$next_gene]);
+        }
+        else {
+            ## tack it on
+            push (@$prev_cluster, $next_gene);
+        }
+    }
+
+    return(@syn_region_genes);
+}
+
 
 
 1; #EOM
