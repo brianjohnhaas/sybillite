@@ -404,76 +404,106 @@ sub createSyntenyPlot {
 				($orgA, $orgB) = ($orgB, $orgA);
 			}
 			
+            
+
 			my $org_pair_val = $org_to_order{$orgA} * 10 + $org_to_order{$orgB};
 			push (@syn_pairs, [ [$geneA, $geneB], $org_pair_val]);
 		}
 	}
 	
-	@syn_pairs = sort {$a->[1] <=> $b->[1]} @syn_pairs;
+
 	
+
+    ## run two rounds of showing matches
+    ## in first round, ensure that A has priority
+    ## in second round, light up gene B, in a bottom-up way
+    
     %seen = ();
 	
-	foreach my $syn_pair (@syn_pairs) {
-		
-		my ($gene_pair_aref, $org_pair_val) = @$syn_pair;
-		my ($geneA, $geneB) = @$gene_pair_aref;
-		
-		if ((! $showAllVsAll) && $seen{$geneA} && $seen{$geneB}) {  ## include AllVsAll check here.
-			next; 
-		} 
-		else { 
-			$seen{$geneA} = 1; 
-            $seen{$geneB} = 1;
-		}
-		
-		my $geneA_orient = $geneA->{orient};
-		my $geneB_orient = $geneB->{orient};
-		
-		my $scaff_A = $geneA->{scaff};
-		my $scaff_B = $geneB->{scaff};
-		
-		my $scaffA_orient = $scaff_orients{$scaff_A};
-		my $scaffB_orient = $scaff_orients{$scaff_B};
-		
-		if ($scaffA_orient eq '-') { 
-			$geneA_orient = $orient_swap{$geneA_orient};
-		}
-		if ($scaffB_orient eq '-') {
-			$geneB_orient = $orient_swap{$geneB_orient};
-		}
-		
-		my $featA = $gene_acc_to_feats{$geneA->{acc}};
-		my $featB = $gene_acc_to_feats{$geneB->{acc}};
-		
-		
-		my ($reverse_flag, $color) = ($geneA_orient eq $geneB_orient) ? (0, 'pink') : (1, 'blue');
-		
-		my $match = { 'feat1' => $featA, 
-					  'feat2' => $featB,
-					  'bg' => $color,
-					  'fg' => 'black',
-					  'reverse' => $reverse_flag,
-		};
-		push (@matches, $match);
-	}
-	
-	
-    skip_matches:
-	
-	my $multi_panel = new MultiPanel([@panels], [@matches]);
-	
-	my $gd = $multi_panel->gd();
+    for my $round (1, 2) {
     
-	if ($imageFilename) {
-		open (my $ofh, ">$imageFilename") || die "Error, cannot write image to $imageFilename";
+        if ($round == 1) {
+            @syn_pairs = sort {$a->[1] <=> $b->[1]} @syn_pairs;
+        }
+        else {
+            @syn_pairs = reverse @syn_pairs; # for bottom-up drawing
+        }
 
+        foreach my $syn_pair (@syn_pairs) {
+            
+            my ($gene_pair_aref, $org_pair_val) = @$syn_pair;
+            my ($geneA, $geneB) = @$gene_pair_aref;
+            
+            if (! $showAllVsAll) {
+                
+                if ($round == 1 && $seen{$geneA}) {
+                    next;
+                }
+                elsif ($round == 2 && $seen{$geneA} && $seen{$geneB}) {
+                    next;
+                }
+            }
+            
+            $seen{$geneA} = 1; 
+            $seen{$geneB} = 1;
+            
+            
+            my $geneA_orient = $geneA->{orient};
+            my $geneB_orient = $geneB->{orient};
+            
+            my $scaff_A = $geneA->{scaff};
+            my $scaff_B = $geneB->{scaff};
+            
+            my $scaffA_orient = $scaff_orients{$scaff_A};
+            my $scaffB_orient = $scaff_orients{$scaff_B};
+            
+            if ($scaffA_orient eq '-') { 
+                $geneA_orient = $orient_swap{$geneA_orient};
+            }
+            if ($scaffB_orient eq '-') {
+                $geneB_orient = $orient_swap{$geneB_orient};
+            }
+            
+            my $featA = $gene_acc_to_feats{$geneA->{acc}};
+            my $featB = $gene_acc_to_feats{$geneB->{acc}};
+            
+            
+            my ($reverse_flag, $color) = ($geneA_orient eq $geneB_orient) ? (0, 'pink') : (1, 'blue');
+            
+            my $match = { 'feat1' => $featA, 
+                          'feat2' => $featB,
+                          'bg' => $color,
+                          'fg' => 'black',
+                          'reverse' => $reverse_flag,
+                      };
+            push (@matches, $match);
+        }
+
+
+        if ($showAllVsAll) {
+            # no need for doing 2 rounds
+            last;
+        }
+        
+    }
+
+    
+  skip_matches:
+    
+    my $multi_panel = new MultiPanel([@panels], [@matches]);
+    
+    my $gd = $multi_panel->gd();
+    
+    if ($imageFilename) {
+        open (my $ofh, ">$imageFilename") || die "Error, cannot write image to $imageFilename";
+        
         if ( $imgFormat eq 'png' ) {
-		    print $ofh $gd->png();
+            print $ofh $gd->png();
             
         } elsif ( $imgFormat eq 'svg' ) {
             print $ofh $gd->svg();
         }
-
+        
 		close $ofh;
 	}
 	else {
