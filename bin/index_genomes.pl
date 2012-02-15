@@ -57,7 +57,16 @@ my $orgs = get_organisms_from_conf( $conf );
 my $data_dir = "$FindBin::Bin/../data/$project/";
 unless (-d $data_dir) {
     mkdir $data_dir or die "Error, cannot mkdir $data_dir";
+    chmod(0775, $data_dir);
 }
+
+## prep regions of interest folder
+my $roi_dir = "$data_dir/regions_of_interest";
+unless (-d $roi_dir) {
+    mkdir ($roi_dir) or die "Error, cannot mkdir $roi_dir";
+    chmod (0777, $roi_dir); # webserver needs to be able to write to it.
+}
+
 
 my $db_file = "$data_dir/annotation.db";
 
