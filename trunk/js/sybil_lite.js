@@ -16,6 +16,7 @@ function setTrackedURL() {
     trackedURL.orgsOrder       = $('#orgsOrder').val();
     trackedURL.orgsSelected    = $('#orgsSelected').val();
     trackedURL.scaffold        = $('#scaffold').val();
+    trackedURL.scaffold = trackedURL.scaffold.replace( ";", '___');
     trackedURL.range           = $('#range').val();
     
     $('#link_view_url').val( 'http://' + trackedURL.host + trackedURL.pathname + 
