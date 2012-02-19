@@ -2,6 +2,7 @@
 //  the user as they navigate the interface.
 var trackedURL = new Object();
     trackedURL.host = window.location.host;
+    trackedURL.pathname = getAppPath();
     
     // these are set later
     trackedURL.project = '';
@@ -17,7 +18,8 @@ function setTrackedURL() {
     trackedURL.scaffold        = $('#scaffold').val();
     trackedURL.range           = $('#range').val();
     
-    $('#link_view_url').val( 'http://' + trackedURL.host + '/sybil_lite.cgi?' +
+    $('#link_view_url').val( 'http://' + trackedURL.host + trackedURL.pathname + 
+                             'sybil_lite.cgi?' +
                              'project=' + trackedURL.project + '&' +
                              'orgsOrder=' + trackedURL.orgsOrder + '&' +
                              'orgsSelected=' + trackedURL.orgsSelected + '&' +
@@ -25,6 +27,18 @@ function setTrackedURL() {
                              'range=' + trackedURL.range );
     
     //alert("I just set the text.");
+}
+
+// gets the path of this application on the server.  I had to use
+//  this instead of the window.location properties, which proved
+//  to be unreliable.
+function getAppPath() {
+    var pathArray = location.pathname.split('/');
+    var appPath = "/";
+    for(var i=1; i<pathArray.length-1; i++) {
+        appPath += pathArray[i] + "/";
+    }
+    return appPath;
 }
 
 function checkForm( theForm ) {
