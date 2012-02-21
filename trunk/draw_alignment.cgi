@@ -187,7 +187,9 @@ if ( $scaffold ) {
                              "imageFile" => $image_file,
                              "imageMapCoordsFile" => $image_map_file,
                              "showAllVsAll" => $showAllVsAll,
-                         );
+                             "feature" => $params{feature},  # gene_id, trans_id, or locus value, enables highlighting of feature of interest in image.
+                             params => \%params,
+                             );
 
     #use Data::Dumper;
     #print STDERR Dumper(\%synPlotOptions);
