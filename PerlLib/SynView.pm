@@ -20,7 +20,7 @@ use FindBin;
 use lib ("$FindBin::Bin");
 use MultiPanel;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 my $LOG_OFH;
 
 
@@ -56,6 +56,8 @@ my $BREAK_NONSYNTENIC_CONTIG_RANGE = 10000; # distance between two syntenic gene
 sub createSyntenyPlot {
 	my %options = @_;
 
+    my $cgi_params = $options{params};
+
 	## Required:
 	my $synGenePairs = $options{"synGenePairs"} or confess "synGenePairs is required";
 	my $gff3Files = $options{"gff3Files"} or confess "gff3Files is required";
@@ -74,7 +76,9 @@ sub createSyntenyPlot {
 	my $miscFeaturesGff3 = $options{"miscFeaturesGff3"};
 
 	my $showAllVsAll = $options{"showAllVsAll"} || 0;
-
+    
+    my $feature = $options{feature}; # gene_id, trans_id, or locus : highight corresponding gene in the display
+    
     unless ($DEBUG) { # retain any hard-coded setting
         $DEBUG = $options{"DEBUG"} || 0;
     }
@@ -83,6 +87,13 @@ sub createSyntenyPlot {
         open ($LOG_OFH, ">tmp/synview.log") or die $!;
     }
     
+    
+    if ($feature && $DEBUG) {
+        print $LOG_OFH "CGI_PARAMS: " . Dumper($cgi_params);
+        print $LOG_OFH "Feature defined: $feature\n";
+    }
+    
+
 
 =deprecated
 	
@@ -292,6 +303,15 @@ sub createSyntenyPlot {
 						$gene_acc_to_feats{$acc} = $feat;
 						push (@feats, $feat);
 						#$panel->add_track($feat, -glyph => 'generic', -label => 1, -description => 1, -key => $acc);
+                        
+                        if ($DEBUG) {
+                            print $LOG_OFH "Drawing FEATURE: $acc\n";
+                        }
+                        
+                        if ($feature && $acc =~ /$feature/) {
+                            $panel->add_track([$feat], -glyph=>"transcript", -bgcolor=>'red');
+                        }
+
 					}
 					$panel->add_track([@feats], -glyph => "transcript", -label => 0);
 				  
@@ -585,7 +605,7 @@ sub parse_gene_coords {
 				$gene_info =~ /ID=([^\;\s]+)/ or die "Error, no gene ID for $_";
 				my $gene_id = $1;
 
-				$gene_id = $org . ":" . $gene_id; # tack organism onto gene identifier.
+                $gene_id = $org . ":" . $gene_id; # tack organism onto gene identifier.
 				
 				my $alias;
 				if ($gene_info =~ /Alias=([^;\s]+)/) {

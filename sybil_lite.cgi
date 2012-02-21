@@ -111,6 +111,7 @@ $tmpl->param( PROJ_TITLE => $proj_title );
 $tmpl->param( PROJECT => $project );
 $tmpl->param( PIXELS_PER_KB => 10 );  ## this should be made configurable later
 $tmpl->param( URL_API_USED => $url_api_used );
+$tmpl->param( FEATURE => $cgi->param('feature') );
 
 print $tmpl->output;
 
