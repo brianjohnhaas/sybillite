@@ -20,7 +20,7 @@ use FindBin;
 use lib ("$FindBin::Bin");
 use MultiPanel;
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 my $LOG_OFH;
 
 
