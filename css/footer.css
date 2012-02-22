@@ -18,7 +18,7 @@ html, body {
     /* "The negative margin should always equal to the full height 
         of the footer (including any padding or borders you may add)." 
     */
-    margin: 0 auto -71px;
+    margin: 0 auto -61px;
 }
 .footer, .push {
     height: 50px;
