@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+    <title>SybilLite: <TMPL_VAR PROJ_TITLE></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    
+    <script type="text/javascript" src="./js/jquery-1.4.4.min.js"></script>
+    <script type="text/javascript" src="./js/jquery-ui-1.8.9.custom.min.js"></script>
+    <script type="text/javascript" src="./js/sybil_lite.js"></script>
+    
+    <!-- tooltip js, from http://flowplayer.org/tools/download/index.html -->
+    <script type="text/javascript" src="./js/jquery.tools.min.js"></script>
+
+    <link type="text/css" href="./css/custom-theme/jquery-ui-1.8.9.custom.css" rel="Stylesheet" />
+    <link rel="stylesheet" type="text/css" href="./css/common.css" />
+    <link rel="stylesheet" type="text/css" href="./css/header.css" />
+    <link rel="stylesheet" type="text/css" href="./css/footer.css" />
+    <link rel="stylesheet" type="text/css" href="./css/sybil_lite.css" />
+</head>
+<body>
+    <div class="wrapper">
+    <div id="control_panel_c">
+	<div id="control_panel">
+        <div class="ui-widget-header fg-toolbar">
+            <div id="site_label">
+                <a id="site_title" href="./project_choice.cgi">SybilLite</a>
+                <a id="site_subtitle" href="./sybil_lite.cgi?project=<TMPL_VAR PROJECT>"><TMPL_VAR PROJ_TITLE></a>
+            </div>
+            <div id="toolbar_buttons">
+                <button id="molecule_selection_btn" class="ui-state-default ui-corner-all fg-button fg-button-toggleable">Molecule and range</button>
+                <button id="organism_order_btn" class="ui-state-default ui-corner-all fg-button fg-button-toggleable">Organism list</button>
+                <button id="adv_opts_btn" class="ui-state-default ui-corner-all fg-button fg-button-toggleable">Advanced options</button>
+                <button id="submit_btn" class="ui-state-default ui-corner-all fg-button">Run</button>
+            </div>
+            <div class="clear_hack"></div>
+        </div>
+
+        <div class="clear_hack"></div>
+
+        <div id="nav_c" class="alignment_control_elements">
+            <ul id="scroll_c">
+                <li id="scroll_left" class="control" onClick="scrollPanel('left');"></li>
+                <li id="scroll_label" class="label">scroll</li>
+                <li id="scroll_right" class="control" onClick="scrollPanel('right');"></li>
+            </ul>
+            <ul id="zoom_c">
+                <li id="zoom_out" class="control" onClick="zoomPanel('out');"></li>
+                <li id="zoom_label" class="label">zoom</li>
+                <li id="zoom_in" class="control" onClick="zoomPanel('in');"></li>
+            </ul>
+        </div>
+        
+        <div id="panel_actions" class="alignment_control_elements">
+            <ul>
+                <li id='quick_search_c'>
+                    <input type="textbox" name="search_term" id="search_term" class="usehint" size="20" value="Enter search terms" />
+                </li>
+                <li id='btn_save_region_menu'>save this region</li>
+                <li id='btn_link_view'>Link this view</li>
+            </ul>
+        </div>
+
+        <div class="clear_hack"></div>
+    </div> <!-- end control panel -->
+    </div> <!-- end control_panel_c -->
+    <div id="save_roi_panel">
+        <h2>Save a region of interest</h2>
+        <p>
+            Enter a name and description below to save your current view and settings as a
+            region of interest.
+        </p>
+        <div id="roi_save_label_c" class="form_elm_c">
+            <label for="roi_save_label">Label:</label>
+            <input type="text" name="roi_save_label" id="roi_save_label" size="20" value="" />
+        </div>
+        <div id="roi_save_desc_c" class="form_elm_c">
+            <label for="roi_save_desc">Description:</label>
+            <textarea rows="5" cols="20" name="roi_save_desc" id="roi_save_desc"></textarea>
+        </div>
+        <div id="roi_save_btns">
+            <button id="roi_save_submit" class="ui-state-default ui-corner-all fg-button">Save</button>
+            <button id="roi_save_cancel" class="ui-state-default ui-corner-all fg-button">Cancel</button>
+        </div>
+    </div> <!-- end save_roi_panel -->
+    <div id='link_view_panel'>
+        <h2>Link this view</h2>
+        <p>
+            As you scroll, zoom and do anything else on the interface you can use the link
+            below to return back to that same view, or copy and e-mail the link to others.
+        </p>
+        <p>
+            url: <input type='text' id='link_view_url' value='link dynamically set here'>
+        </p>
+        <!--<p id='link_view_url'>link dynamically set here</p>-->
+    </div>
+    <div id="search_form_panel_results">
+        <h2>Search results</h2>
+        <p>
+            NOT YET IMPLEMENTED
+        </p>
+    </div> <!-- end search_form_panel_results -->
+    <div id="progress_indicator_panel">
+        <p id="progress_spinner_c">
+            Loading ...
+        </p>
+    </div>
+    <div id="result_panel">
+        
+        <div id="splash_c">
+            <h1>Instructions</h1>
+            <p id="initial_instructions">
+                Use the controls above to select a molecule and region.
+            </p>
+
+            <h1>Regions of interest 
+            <TMPL_IF GRAPHICAL_ROI_VIEW>
+            <span id='roi_display_toggle'>[<a href='./sybil_lite.cgi?project=<TMPL_VAR PROJECT>&ROI_view=table'>switch to table view</a>]</span>
+            <TMPL_ELSE>
+            <span id='roi_display_toggle'>[<a href='./sybil_lite.cgi?project=<TMPL_VAR PROJECT>&ROI_view=graphic'>switch to graphical view</a>]</span>
+            </TMPL_IF>
+            </h1>
+            
+            <!-- other content is inserted here by javascript -->
+            
+        </div>
+        
+    </div>
+    
+    <form name="frm_panel" id="frm_panel" action="./draw_alignment.cgi" method="get">
+    
+    <div id='menus'>
+        <input id="orgsOrder" type="hidden" name="orgsOrder" value="<TMPL_VAR ORGANISM_ORDER>" />
+        <input id="orgsSelected" type="hidden" name="orgsSelected" value="" />
+        <input id="scroll_direction" type="hidden" name="scroll_direction" value="none" />
+        <input id="zoom_direction" type="hidden" name="zoom_direction" value="none" />
+        <input id="export_as" type="hidden" name="export_as" value="none" />
+        <input id="current_image" type="hidden" name="current_image" value="" />
+        <input id="project" type="hidden" name="project" value="<TMPL_VAR PROJECT>" />
+        <input id="feature" type="hidden" name="feature" value="<TMPL_VAR FEATURE>" />
+        <input id="graphical_roi_view" type="hidden" name="graphical_roi_view" value="<TMPL_VAR GRAPHICAL_ROI_VIEW>" />
+        <input id="url_api_used" type="hidden" name="url_api_used" value="<TMPL_VAR URL_API_USED>" />
+        <div id='molecule_selection_d' title='Molecule and Range'>
+            <div id="scaffold_choice_c" class="form_elm_c">
+                <label for="scaffold">Scaffold:</label>
+                <select name="scaffold" id="scaffold">
+                <TMPL_LOOP MOLECULE_SELECTIONS>
+                    <TMPL_IF SELECTED>
+                    <option value="<TMPL_VAR VALUE>" selected="selected"><TMPL_VAR LABEL></option>
+                    <TMPL_ELSE>
+                    <option value="<TMPL_VAR VALUE>"><TMPL_VAR LABEL></option>
+                    </TMPL_IF>
+                </TMPL_LOOP>
+                </select>
+            </div>
+            <div id="range_choice_c" class="form_elm_c">
+                <label for="range">Range:</label>
+                <input type="text" name="range" id="range" size="20" value="<TMPL_VAR DEFAULT_SCAFF_RANGE>" />
+            </div>
+            <div id="adv_mol_section_opts" class="form_elm_c">
+                <label for="flank">Flanking bases to include</label>
+                <input type="text" class="param" name="flank" id="flank" size="20" value="<TMPL_VAR DEFAULT_FLANK>" />
+            </div>
+        </div> <!-- end #molecule_selection_d -->
+        <div id="organism_order_d" title="Organism order">
+            <div id="orgorder_c">
+                Organism order:
+                <div>
+                    <ul id="org_list">
+                        <TMPL_LOOP ORGANISM_SELECTIONS>
+                        <li class="ui-state-default">
+                            <TMPL_IF ENABLED>
+                            <div class="add_remove enabled_first">
+                            <TMPL_ELSE>
+                            <div class="add_remove disabled_first">
+                            </TMPL_IF>
+                                <span id="<TMPL_VAR LABEL>_add" class="add" onClick="addOrg('<TMPL_VAR LABEL>');"></span>
+                                <span id="<TMPL_VAR LABEL>_remove" class="remove" onClick="removeOrg('<TMPL_VAR LABEL>');"></span>
+                                <TMPL_IF ENABLED>
+                                <input type="hidden" id="<TMPL_VAR LABEL>_enabled" class="enabled_state" value="1" />
+                                <TMPL_ELSE>
+                                <input type="hidden" id="<TMPL_VAR LABEL>_enabled" class="enabled_state" value="0" />
+                                </TMPL_IF>
+                            </div>
+                            <span class="ui-icon ui-icon-arrowthick-2-n-s"></span>
+                            <TMPL_VAR LABEL>
+                        </li>
+                        </TMPL_LOOP>
+                    </ul>
+                </div>
+            </div>
+        </div> <!-- end #organism_order_d -->
+        <div id="adv_opts_d" title="Advanced options">
+            <div class="form_elm_c">
+                <span class="label">Pixels per kb:</span>
+                <input type="text" name="pixelsPerKb" id="pixelsPerKb" value="<TMPL_VAR PIXELS_PER_KB>" />
+            </div>
+            <div>
+                <TMPL_IF SHOW_ALL_VS_ALL>
+                <input type="checkbox" name="showAllVsAll" checked="checked" />show All-vs-All matches
+                <TMPL_ELSE>
+                <input type="checkbox" name="showAllVsAll" />show All-vs-All matches
+                </TMPL_IF>
+                <br />
+                <input type="checkbox" name="keep_image" />retain image
+            </div>
+        </div>
+    </div> <!-- end #menus -->
+    
+    <div class="push"></div>
+    
+    </div> <!-- end div.wrapper -->
+    </form>
+    <div class="footer">
+        <div class="alignment_control_elements">
+            <p id='export_links'>export as: [<a href="javascript:exportAsSVG()">SVG</a>]</p>
+            <p id='gene_data'>gene product: <span id="gene_product">hover over any gene to see product</span></p>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

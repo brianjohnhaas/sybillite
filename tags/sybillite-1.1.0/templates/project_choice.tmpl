@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+    <title>SybilLite Project Listing</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    
+    <script type="text/javascript" src="./js/jquery-1.4.4.min.js"></script>
+    <script type="text/javascript" src="./js/jquery-ui-1.8.9.custom.min.js"></script>
+
+    <link type="text/css" href="./css/custom-theme/jquery-ui-1.8.9.custom.css" rel="Stylesheet" />
+    <link rel="stylesheet" type="text/css" href="./css/common.css" />
+    <link rel="stylesheet" type="text/css" href="./css/header.css" />
+    <link rel="stylesheet" type="text/css" href="./css/footer.css" />
+    <link rel="stylesheet" type="text/css" href="./css/project_choice.css" />
+</head>
+<body>
+
+    <div class="wrapper">
+	<div id="control_panel_c">
+	<div id="control_panel">
+        <div class="ui-widget-header fg-toolbar">
+            <div id="site_label">
+                <a id="site_title">SybilLite</a>
+                <a id="site_subtitle"><TMPL_VAR PROJ_TITLE></a>
+            </div>
+
+            <div class="clear_hack"></div>
+        </div>
+
+        <div class="clear_hack"></div>
+    </div> <!-- end control panel -->
+    </div> <!-- end control_panel_c -->
+    
+    
+	<div id="content_c">
+        <h2>Choose a project</h2>
+
+        <table>
+        	<tr>
+                <th>Project</th>
+                <th>Organisms</th>
+                <th>Description</th>
+        	</tr>
+        	<TMPL_LOOP ORGS>
+        	<tr>
+                <td><a href="./sybil_lite.cgi?project=<TMPL_VAR PROJECT>"><TMPL_VAR PROJECT></a></td>
+                <td><TMPL_VAR ORGANISMS></td>
+                <td><TMPL_VAR DESCRIPTION></td>
+        	</tr>
+        	</TMPL_LOOP> <!-- end ORGS loop -->
+        </table>
+	</div>
+
+    <div class="push"></div>
+
+    </div> <!-- end div.wrapper -->
+    <div class="footer">
+        <!-- no content here for the project choice page yet -->
+        <p></p>
+    </div>
+</body>
+</html>

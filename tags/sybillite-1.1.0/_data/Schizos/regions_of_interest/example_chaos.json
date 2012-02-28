@@ -1,0 +1,12 @@
+{
+    "id" : "example_chaos",
+    "project" : "Schizos",
+    "label" : "Chaos",
+    "orgsOrder" : [ "SP2", "SO3", "SJ1" ],
+    "orgsSelected" : [ "SP2", "SJ1" ],
+    "scaffold" : "SP2;7000000090838469",
+    "range" : "1100000-1600000",
+    "flank" : 0,
+    "pixelsPerKb" : 1,
+    "description" : "Rearrangements, inversions, deletions, oh my!"
+}
