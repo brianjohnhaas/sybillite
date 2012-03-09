@@ -1,0 +1,315 @@
+div#menus {
+    display: none;
+}
+div#nav_c {
+    padding: 15px 0 0 20px;
+}
+    div#nav_c li.label {
+        width: 40px;
+        overflow: hidden;
+        padding: 2px 7px 0 7px;
+        text-align: center;
+    }
+    div#nav_c li {
+        margin: 0;
+        padding: 0;
+        float: left;
+    }
+    div#nav_c ul {
+        float: left;
+        list-style: none;
+        width: 150px;
+        margin: 0 15px 5px 0;
+        padding: 0;
+        min-height: 22px;
+    }
+    li#zoom_out {
+        background: url("../images/remove_boxed.png") no-repeat left top;
+    }
+    li#zoom_in {
+        background: url("../images/add_boxed.png") no-repeat left top;
+    }
+    li#scroll_left {
+        background: url("../images/move_left_boxed.png") no-repeat left top;
+    }
+    li#scroll_right {
+        background: url("../images/move_right_boxed.png") no-repeat left top;
+    }
+div.alignment_control_elements {
+    display: none;
+}
+div#panel_actions {
+    /*float: left;*/
+    display: block;
+    
+    position: absolute;
+    top: 55px;
+    left: 350px;
+}
+    div#panel_actions ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    div#panel_actions li {
+        float: left;
+        /*
+        border-top: 1px solid rgb(107,107,107);
+        */
+        /* we do a white border here because there is also a 
+           border on hover and we don't want a pixel shift */
+        border: 1px solid rgb(255,255,255);
+        margin-left: 40px;
+        
+        /* this assumes a 24x24 icon */
+        padding: 3px 5px 3px 28px;
+        min-height: 20px;
+
+    }
+    li#btn_save_region_menu {
+        display: none;  /* this is shown once an alignment is */
+        background: url("../images/camera_24.png") no-repeat left top;
+    }
+    li#btn_link_view {
+        display: none; /* this is shown once an alignment is */
+        background: url("../images/link_24.png") no-repeat left top;
+    }
+    li#btn_save_region_menu:hover,
+    li#btn_link_view:hover {
+        cursor: pointer;
+        border: 1px solid rgb(151,151,151);
+    }
+    li#quick_search_c {
+        display: none; /* this is shown once an alignment is */
+        background: url("../images/search_icon_24.jpg") no-repeat left top;
+    }
+    
+#org_list { 
+    list-style-type: none; 
+    margin: 0; 
+    padding: 0; 
+    width: 130px; 
+}
+	#org_list li { 
+        margin: 0; 
+        padding: 0.4em; 
+        padding-left: 1.5em; 
+    }
+	#org_list li span.ui-icon { 
+        position: absolute; 
+        margin-left: -1.3em; 
+    }
+    #org_list div.add_remove {
+        float: right;
+    }
+    #org_list span.add,
+    #org_list span.remove {
+        display: block;
+        float: left;
+        padding-left: 3px;
+        width: 16px;
+        height: 16px;
+    }
+    #org_list span.add {
+        background: url("../images/silk_add.png") no-repeat left top;
+    }
+    #org_list span.remove {
+        background: url("../images/silk_delete.png") no-repeat left top;
+    }
+
+    #org_list div.enabled_first span.add {
+        display: none;
+    }
+    #org_list div.disabled_first span.remove {
+        display: none
+    }
+
+div#progress_indicator_panel {
+    display: none;
+    margin: 50px 0 50px 50px;
+}
+
+p#progress_spinner_c {
+    height: 50px;
+    padding: 0 0 0 50px;
+    margin: 0;
+    font-size: 200%;
+    font-weight: bold;
+    background: url("../images/progress_spinner_black.gif") no-repeat left top;
+}
+
+div#result_panel {
+    margin: 10px 25px 10px 25px;
+    min-width: 900px;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+    div#result_panel img {
+        border: none;
+    }
+div#save_roi_panel,
+div#search_form_panel_results,
+div#link_view_panel {
+    display: none;
+    padding-left: 25px;
+}
+    div#save_roi_panel h2,
+    div#search_form_panel_results h2,
+    div#link_view_panel h2 {
+        margin: 15px 0 10px 0;
+    }
+    div#save_roi_panel p,
+    div#search_form_panel_results p,
+    div#link_view_panel p {
+        margin: 10px 0 10px 0;
+    }
+    div#save_roi_panel label {
+        display: block;
+    }
+    div#save_roi_panel .form_elm_c {
+        margin-bottom: 10px;
+    }
+    div#save_roi_panel input#roi_save_label,
+    div#save_roi_panel textarea#roi_save_desc {
+        width: 300px;
+    }
+    div#save_roi_panel button {
+        font-size: 90%;
+    }
+    input#link_view_url {
+        padding: 3px;
+        width: 500px;
+    }
+span#roi_display_toggle:hover {
+    cursor: pointer;
+}
+span#roi_display_toggle {
+    font-size: 70%;
+    padding-left: 150px;
+}
+div#search_form_panel_results {
+    display: none;
+}
+input, select {
+    /* matches the JQuery widget border color */
+    border: 1px solid rgb(204,204,204);
+}
+li.control {
+    width: 22px;
+    height: 22px;
+}
+li.control:hover {
+    cursor: pointer;
+}
+p#export_links {
+    float: right;
+}
+span#gene_product {
+    font-weight: normal;
+}
+
+table#examples_tbl {
+    border-collapse: collapse;
+}
+table#examples_tbl td {
+    border: 1px solid rgb(200,200,200);
+    padding: 3px 8px;
+}
+table#examples_tbl tr:hover {
+    cursor: pointer;
+    background-color: rgb(230,230,230);
+}
+
+/******************/
+/* splash section */
+/******************/
+
+div.alignment_example {
+    min-height: 150px;
+    margin-bottom: 30px;
+    background-repeat: no-repeat;
+    background-position: left top;
+    
+}
+div.alignment_example:hover {
+    cursor: pointer;
+}
+div#examples_c {
+    margin-top: 15px;
+}
+div#splash_c {
+    margin: 30px 50px 20px 50px;
+}
+    div#splash_c h1 {
+        font-size: 140%;
+        font-weight: bold;
+        color: rgb(0,100,0);
+    }
+    div#splash_c h2 {
+        width: 400px;
+        font-size: 120%;
+        font-weight: bold;
+        color: rgb(0,100,0);
+    }
+    div#splash_c h2,
+    div.comment_c p {
+        background-color: rgb(255,255,255);
+        padding: 5px;
+        filter:alpha(opacity=90);
+        -moz-opacity:0.9;
+        opacity: 0.9;
+        border: 1px solid rgb(204,204,204);
+        margin-left: 30px;
+    }
+    div.comment_c {
+        width: 500px;
+        padding: 15px 0 0 50px;
+    }
+
+p#initial_instructions {
+    margin-bottom: 30px;
+}
+
+/*** end splash section ***/
+
+
+
+
+/*** form controls ***/
+
+div#molecule_selection_d label,
+div#adv_opts_d label {
+    display: block;
+}
+div#molecule_selection_d div.form_elm_c,
+div#adv_opts_d div.form_elm_c {
+    margin-bottom: 15px;
+}
+/*** end form controls ***/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

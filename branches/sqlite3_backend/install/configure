@@ -1,0 +1,227 @@
+#!/usr/bin/env perl 
+
+=head1 NAME
+
+configure - checks that your system is ready for install
+
+=head1 SYNOPSIS
+
+USAGE: configure 
+            --prefix=/install/here/ 
+          [ --force=1  ]
+
+=head1 OPTIONS
+
+B<--prefix,-p>
+    This is the base directory where you want the system installed.  This should
+    be under your web server area.  This will NOT create a 'sybillite' subdirectory,
+    so if you want it in a subdirectory under your webserver you'll need to create it
+    first and then pass the path here.
+
+B<--force,-f>
+    Optional.  Pass '1' force the script to install when possible, even if preliminary 
+    checks fail (such as missing Perl modules).
+
+B<--log,-l> 
+    Log file
+
+B<--help,-h>
+    This help message
+
+=head1  DESCRIPTION
+
+Checks your system and writes and installer file.
+
+=cut
+
+use warnings;
+use strict;
+use FindBin qw($Bin);
+use Getopt::Long qw(:config no_ignore_case no_auto_abbrev pass_through);
+use Pod::Usage;
+use Term::ANSIColor;
+
+$|++;
+
+my %options = ();
+my $results = GetOptions (\%options, 
+                          'prefix|p=s',
+                          'force|f=s',
+                          'log|l=s',
+                          'help|h') || pod2usage();
+
+## display documentation
+if( $options{'help'} ){
+    pod2usage( {-exitval => 0, -verbose => 2, -output => \*STDERR} );
+}
+
+## make sure everything passed was peachy
+&check_parameters(\%options);
+
+## open the log if requested
+my $logfh;
+if (defined $options{log}) {
+    open($logfh, ">$options{log}") || die "can't create log file: $!";
+}
+
+
+
+my $perl_modules_missing = &check_perl_modules();
+
+## handle all cases of reporting to the user regarding missing perl modules, if any
+if ( scalar @$perl_modules_missing ) {
+    if ( $options{force} ) {
+        _log("WARN: There were missing perl modules but --force was used, so continuing");
+    } else {
+        _log("ERROR: Configure failed: the following perl modules are missing:");
+        
+        for ( @$perl_modules_missing ) {
+            _log("ERROR:\t$_");
+        }
+        
+        exit(1);
+    }
+    
+} else {
+    _log( "INFO: all perl modules required have been found" );
+}
+
+## make sure the output directory exists
+if (! -d $options{prefix} ) {
+    _log("ERROR: directory specified by --prefix doesn't appear to exist.");
+    exit(1);
+}
+
+## make sure the output directory is writable
+if (! -w $options{prefix} ) {
+    _log("ERROR: directory specified by --prefix doesn't appear to be writable.");
+    exit(1);
+}
+
+my $installer = "$Bin/install";
+
+## if we got this far, we're going to write an installer file
+open(my $shell_fh, ">$installer") || die "ERROR: failed to create installer file ($installer): $!";
+
+print $shell_fh '#!/usr/bin/env sh' . "\n";
+print $shell_fh "cp -r $Bin/src/* $options{prefix}/\n";
+print $shell_fh "rm -rf $options{prefix}/install\n";
+
+## make symlinks to the data and conf directories unless they're already there
+if ( ! -d "$options{prefix}/conf" ) {
+    _log("INFO: creating symlink to conf directory");
+    print $shell_fh "ln -s $options{prefix}/_conf $options{prefix}/conf\n";
+} else {
+    _log("INFO: conf directory already found. Skipping it.");
+}
+
+if ( ! -d "$options{prefix}/data" ) {
+    _log("INFO: creating symlink to data directory");
+    print $shell_fh "ln -s $options{prefix}/_data $options{prefix}/data\n";
+} else {
+    _log("INFO: data directory already found. Skipping it.");
+}
+
+print $shell_fh "chmod 777 $options{prefix}/tmp\n";
+
+close $shell_fh;
+
+chmod(0755, "$installer");
+
+_log("INFO: Installer written to $installer");
+
+my $apache_conf_msg = <<ApacheConfMsg;
+
+After running the installer that was just created you need to make sure 
+you have an entry like this one in your httpd.conf file, then
+restart your web server:
+
+<Directory "$options{prefix}">
+    Options +ExecCGI
+    AllowOverride Limit
+    DirectoryIndex index.html index.cgi
+    AddHandler cgi-script .cgi
+
+    <FilesMatch "\.ini">
+            Deny from all
+    </FilesMatch>
+</Directory>
+
+ApacheConfMsg
+
+_log($apache_conf_msg);
+
+exit(0);
+
+
+sub check_perl_modules {
+    ## let's start by checking for the modules we need
+    ## WARNING: Any changes to this list of modules should be reflected within
+    #   the install documentation.
+    my @modules_to_check = qw( 
+        Config::IniFiles
+        Data::Dumper
+        DBD::SQLite
+        File::Basename
+        File::Copy
+        GD
+        GD::SVG
+        HTML::Template
+        JSON
+        URI::Escape
+    );
+    my @modules_not_found;
+
+    _log("INFO: checking necessary perl modules:");
+
+    for ( @modules_to_check ) {
+        my $formed = $_;
+        $formed =~ s|::|/|g;
+        $formed =~ s|$|.pm|g;
+
+        print "\t$_\t:";
+        eval {require $formed};
+
+        if ( $@ ) {
+            print color 'bold red';
+            print " not found\n";
+            push @modules_not_found, $_;
+        } else {
+            print color 'bold green';
+            print " found\n";
+        }
+
+        print color 'reset';
+    }
+
+    return \@modules_not_found;
+}
+
+sub _log {
+    my $msg = shift;
+    
+    if ( $logfh ) {
+        print $logfh "$msg\n";
+    } else {
+        print STDERR "$msg\n";
+    }
+}
+
+sub check_parameters {
+    my $options = shift;
+    
+    ## make sure required arguments were passed
+    my @required = qw( prefix );
+    for my $option ( @required ) {
+        unless  ( defined $$options{$option} ) {
+            die "--$option is a required option";
+        }
+    }
+    
+    ##
+    ## you can do other things here, such as checking that files exist, etc.
+    ##
+    
+    ## handle some defaults
+    #$options{optional_argument2}   = 'foo'  unless ($options{optional_argument2});
+}
