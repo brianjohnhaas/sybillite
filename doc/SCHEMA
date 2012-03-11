@@ -1,0 +1,14 @@
+CREATE TABLE gene (
+            id          INTEGER,
+            gene_id     TEXT,
+            alias       TEXT,
+            org_abbrev  TEXT,
+            molecule    TEXT,
+            start       TEXT,
+            end         TEXT,
+            strand      INTEGER,
+            name        TEXT
+        );
+CREATE UNIQUE INDEX idx_gene_id ON gene (gene_id);
+CREATE INDEX idx_molecule ON gene (molecule);
+CREATE INDEX idx_name ON gene (name);
