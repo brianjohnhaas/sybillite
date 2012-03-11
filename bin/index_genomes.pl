@@ -14,6 +14,9 @@ line and the SybilLite.conf file will use this to do everything else.  Therefore
 you must have set up that project in the Sybillite.conf first before running this
 indexing script.
 
+To allow incomplete paths to be defined in the conf file, this script must be run
+from within the conf directory.
+
 =head1 OUTPUT
 
 Within the project directory a single SQLite3 database file called 'annotation.db'
@@ -102,8 +105,6 @@ exit(0);
 
 sub get_organisms_from_conf {
     my $config = shift;
-    
-    
 
     my @organisms = split (/,/, $conf->get_value("Meta", "Organisms"));
     
@@ -128,6 +129,7 @@ sub initialize_database {
         CREATE TABLE gene (
             id          INTEGER,
             gene_id     TEXT,
+            alias       TEXT,
             org_abbrev  TEXT,
             molecule    TEXT,
             start       TEXT,
@@ -140,7 +142,7 @@ sub initialize_database {
     
     my $insert_gene_dml = qq{
         INSERT INTO gene
-        VALUES ( ?, ?, ?, ?, ?, ?, ?, ? )
+        VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )
     };
     my $insert_gene_dsh = $dbh->prepare($insert_gene_dml);
     
@@ -173,6 +175,7 @@ sub load_gff3_file {
         my @insert_data = (
             $next_gene_id++, ## id
             '', ## gene_id
+            '', ## alias
             $org_abbrev,
             $cols[0], ## molecule
             $cols[3], ## start
@@ -189,7 +192,10 @@ sub load_gff3_file {
                 $insert_data[1] = $v;
                 
             } elsif ( $k eq 'Name' ) {
-                $insert_data[7] = $v;
+                $insert_data[8] = $v;
+            
+            } elsif ( $k eq 'Alias' ) {
+                $insert_data[2] = $v;
             }
         }
         
