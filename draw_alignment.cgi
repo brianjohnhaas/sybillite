@@ -19,6 +19,7 @@ use Carp;
 use CGI::Carp qw(fatalsToBrowser);
 use Data::Dumper;
 use Cwd;
+use DBI;
 use File::Basename;
 use FindBin;
 use HTML::Template;
@@ -55,6 +56,9 @@ my $conf = new IniReader("conf/$project_conf_file");
 
 my $PURGE_CACHE = $params->{PURGE_CACHE} ? 1 : 0;
 my $DEBUG = $params->{DEBUG} || 0;
+
+my $db_file = "./data/$project/annotation.db";
+my $dbh = DBI->connect( "dbi:SQLite:$db_file" ) || die "Cannot connect: $DBI::errstr";
 
 ## this will ultimately be transformed into a JSON structure and printed
 my %json_data = ();
@@ -188,6 +192,7 @@ if ( $scaffold ) {
                              "imageMapCoordsFile" => $image_map_file,
                              "showAllVsAll" => $showAllVsAll,
                              "feature" => $params{feature},  # gene_id, trans_id, or locus value, enables highlighting of feature of interest in image.
+                             dbh => $dbh,
                              params => \%params,
                              );
 
@@ -213,6 +218,8 @@ if ( $scaffold ) {
     unlink ($image_map_file);
 }
 
+$dbh->disconnect();
+
 $json_data{image_file} = $image_file;
 $json_data{map_points} = $map_points;
 ## the range is passed back so both client and server layers don't have to
@@ -226,6 +233,10 @@ if ( $export_as eq 'none' ) {
     print $cgi->header( -type => 'application/json' );
     my $json = JSON->new->allow_nonref;
     print $json->encode(\%json_data);
+    
+    open(my $debug_json_out_fh, ">/tmp/out.json") || die "failed to create debug output JSON file: $!";
+    
+    print $debug_json_out_fh $json->encode(\%json_data);
 
 } elsif ( $export_as eq 'svg' ) {
     

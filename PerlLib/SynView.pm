@@ -20,7 +20,7 @@ use FindBin;
 use lib ("$FindBin::Bin");
 use MultiPanel;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 my $LOG_OFH;
 
 
@@ -31,8 +31,6 @@ my $BREAK_NONSYNTENIC_CONTIG_RANGE = 10000; # distance between two syntenic gene
 #############################################################################
 #
 #  --synGenePairs  : list of files containing dagchainer results (ie. "fileA,fileB,...")
-#
-#  --gff3Files      : list of gff3 files containing the protein-coding gene coordinates (ie. "OrgA::fileA.gff3,OrgB::fileB.gff3")
 #
 #  --refScaffold    : accession of the reference scaffold molecule.
 #  --refScaffoldRange  : range to view on the reference scaffold (ie. "1-10000") 
@@ -47,6 +45,7 @@ my $BREAK_NONSYNTENIC_CONTIG_RANGE = 10000; # distance between two syntenic gene
 #  --imageMapCoords      : file to which the image mapped coordinates will be written
 #
 #  --hideMatches         : pairs of organisms for which matches should be hidden.  Format:   orgA~orgB,orgC~orgD ...  hides between A-B and separately between C-D
+#  --dbh                 : SQLite3 database handle
 #
 ##########################################################################################################
 
@@ -60,7 +59,6 @@ sub createSyntenyPlot {
 
 	## Required:
 	my $synGenePairs = $options{"synGenePairs"} or confess "synGenePairs is required";
-	my $gff3Files = $options{"gff3Files"} or confess "gff3Files is required";
 	my $refScaffold = $options{"refScaffold"};
 
 	## Opts with defaults:
@@ -87,30 +85,11 @@ sub createSyntenyPlot {
         open ($LOG_OFH, ">tmp/synview.log") or die $!;
     }
     
-    
     if ($feature && $DEBUG) {
         print $LOG_OFH "CGI_PARAMS: " . Dumper($cgi_params);
         print $LOG_OFH "Feature defined: $feature\n";
     }
-    
 
-
-=deprecated
-	
-	my %HIDE_MATCHES;
-	if ($hideMatchesString) {
-		my @org_pairs = split (/,/, $hideMatchesString);
-		foreach my $org_pair (@org_pairs) {
-			my ($orgA, $orgB) = split (/\~/, $org_pair);
-			$orgA =~ s/\s+//g;
-			$orgB =~ s/\s+//g;
-			$HIDE_MATCHES{$orgA}->{$orgB} = 1;
-			$HIDE_MATCHES{$orgB}->{$orgA} = 1;
-		}
-	}
-
-=cut
-	
 
 	my %org_to_order;
 	{
@@ -120,19 +99,18 @@ sub createSyntenyPlot {
 			$count++;
 		}
 	}
-
 	
 	## parse the input files
 	my %syn_gene_pairs = &parse_syn_gene_pairs($synGenePairs, $refScaffold);
 	
-	my %scaffold_to_gene_structs = &parse_gene_coords($gff3Files);
+	my $scaffold_to_gene_structs = &parse_gene_coords($options{dbh});
 	
 	
 	# transpose the scaffold to gene data
-	my %gene_acc_to_gene_struct = &transpose_scaffold_genes_list_to_gene_acc_lookup(\%scaffold_to_gene_structs);
+	my %gene_acc_to_gene_struct = &transpose_scaffold_genes_list_to_gene_acc_lookup($scaffold_to_gene_structs);
 	
 	# get scaffold lengths (cheap; just taking the right-most coordinate of any parsed feature on the scaffold for now.
-	my %scaffold_lengths = &parse_scaffold_lengths(\%scaffold_to_gene_structs);	
+	my %scaffold_lengths = &parse_scaffold_lengths($scaffold_to_gene_structs);	
 	   
 	## assign reference scaffold range coordinates.
 	my ($refScaffLend, $refScaffRend) = &assign_reference_scaffold_range_coordinates($refScaffold, $refScaffoldRange, \%scaffold_lengths);
@@ -140,7 +118,7 @@ sub createSyntenyPlot {
     print $LOG_OFH  "RefScaff: $refScaffold ($refScaffLend - $refScaffRend)\n" if $DEBUG;
     
 	## pull out the syntenic scaffolds and genes found syntenic to the reference scaffold range of interest.
-	my %syntenic_scaffolds_to_genes = &extract_scaffolds_syntenic_to_ref_scaffold($refScaffold, [$refScaffLend, $refScaffRend], \%scaffold_to_gene_structs, \%gene_acc_to_gene_struct, \%syn_gene_pairs);
+	my %syntenic_scaffolds_to_genes = &extract_scaffolds_syntenic_to_ref_scaffold($refScaffold, [$refScaffLend, $refScaffRend], $scaffold_to_gene_structs, \%gene_acc_to_gene_struct, \%syn_gene_pairs);
 
     #print $LOG_OFH "\n\n## Syntenic scaffolds to genes:\n" . Dumper(\%syntenic_scaffolds_to_genes) if $DEBUG;
 	
@@ -234,7 +212,7 @@ sub createSyntenyPlot {
 					
 					my $syn_orient = ($scaffold eq $refScaffold) ? '+' : &estimate_synteny_orientation($scaffold, [$rangeLend, $rangeRend], 
 																									   $refScaffold, [$range_coords_href->{ref_lend}, $range_coords_href->{ref_rend}],
-																									   \%scaffold_to_gene_structs,
+																									   $scaffold_to_gene_structs,
 																									   \%syn_gene_pairs,
 																									   \%gene_acc_to_gene_struct, 
                                                                                                        \%syntenic_scaffolds_to_genes);
@@ -286,7 +264,7 @@ sub createSyntenyPlot {
                     $orig_scaff_name =~ s/\.pt\d+$//g;
 					
                     print $LOG_OFH "Drawing genes on $scaffold (really $orig_scaff_name)\n" if $DEBUG;
-                    foreach my $gene (@{$scaffold_to_gene_structs{$orig_scaff_name}}) {
+                    foreach my $gene (@{$$scaffold_to_gene_structs{$orig_scaff_name}}) {
 						my ($lend, $rend, $name) = ($gene->{lend}, $gene->{rend}, $gene->{name});
 						unless ($lend <= $rangeRend && $rend >= $rangeLend) { next; } # no overlap
 						
@@ -582,57 +560,33 @@ sub parse_syn_gene_pairs {
 
 ####
 sub parse_gene_coords {
-	my ($fileListString) = @_;
+	my ($dbh) = @_;
 
 	my %scaffold_to_gene_structs;
 
-	foreach my $org_file_info (split (/,/, $fileListString)) {
-	  my ($org, $file) = split (/::/, $org_file_info);
-	  $file =~ s/\s+//g;
+    my $qry = qq{
+        SELECT gene_id, alias, name, start, end, strand, org_abbrev, molecule
+          FROM gene
+    };
 
-		open (my $fh, $file) or die "Error, cannot find file $file";
-		while (<$fh>) {
-			chomp;
-			if (/^\#/) { next; }
-			unless (/\w/) { next; }
-			
-			my @x = split (/\t/);
-			if ($x[2] eq 'gene') {
-				my ($scaffold, $lend, $rend, $orient, $gene_info) = ($x[0], $x[3], $x[4], $x[6], $x[8]);
-				
-				$scaffold = "$org;$scaffold";
-				
-				$gene_info =~ /ID=([^\;\s]+)/ or die "Error, no gene ID for $_";
-				my $gene_id = $1;
+    my $dsh = $dbh->prepare($qry);
+       $dsh->execute();
 
-                $gene_id = $org . ":" . $gene_id; # tack organism onto gene identifier.
-				
-				my $alias;
-				if ($gene_info =~ /Alias=([^;\s]+)/) {
-					$alias = $1;
-				}
-				my $name = $gene_id;
-				if ($gene_info =~ /Name=([^;]+)/) {
-					$name = $1;
-					if ($gene_id ne $name) {
-						$name = "$gene_id $name";
-					}
-				}
-				
-				push (@{$scaffold_to_gene_structs{$scaffold}}, { acc => $gene_id,
-																 alias => $alias,
-																 name => $name,
-																 lend => $lend,
-																 rend => $rend,
-																 orient => $orient,
-																 scaffold => $scaffold,
-															 } );
-			}
-		}
-		close $fh;
-	}
+    while (my $row = $dsh->fetchrow_hashref) {
+        push @{$scaffold_to_gene_structs{ "$$row{org_abbrev};$$row{molecule}" } }, { 
+                                                        acc => "$$row{org_abbrev}:$$row{gene_id}",
+                                                        alias => $$row{alias},
+                                                        name => "$$row{org_abbrev}:$$row{gene_id} $$row{name}",
+                                                        lend => $$row{start},
+                                                        rend => $$row{end},
+                                                        orient => $$row{strand},
+                                                        scaffold => "$$row{org_abbrev};$$row{molecule}",
+                                                      };
+    }
 
-	return (%scaffold_to_gene_structs);
+    $dsh->finish();
+
+    return \%scaffold_to_gene_structs;
 }
 
 
