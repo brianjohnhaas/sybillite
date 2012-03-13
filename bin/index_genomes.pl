@@ -146,8 +146,8 @@ sub initialize_database {
     
     ## load each of the GFF3 files
     for my $abbreviation ( keys %$orgs ) {
-        print STDERR "INFO: calling load_gff3_file( $insert_gene_dsh, $abbreviation, '$FindBin::Bin/../$$orgs{$abbreviation}' );\n";
-        load_gff3_file( $insert_gene_dsh, $abbreviation, "$FindBin::Bin/../$$orgs{$abbreviation}" );
+        print STDERR "INFO: calling load_gff3_file( $insert_gene_dsh, $abbreviation, '$$orgs{$abbreviation}' );\n";
+        load_gff3_file( $insert_gene_dsh, $abbreviation, "$$orgs{$abbreviation}" );
     }
     
     $insert_gene_dsh->finish();
