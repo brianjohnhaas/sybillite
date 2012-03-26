@@ -12,3 +12,22 @@ CREATE TABLE gene (
 CREATE UNIQUE INDEX idx_gene_id ON gene (gene_id);
 CREATE INDEX idx_molecule ON gene (molecule);
 CREATE INDEX idx_name ON gene (name);
+
+
+CREATE TABLE aligncoords (
+            id          INTEGER,
+            qry_org     TEXT,
+            qry_mol     TEXT,
+            qry_acc     TEXT,
+            qry_fmin    INTEGER,
+            qry_fmax    INTEGER,
+            qry_strand  INTEGER,
+            ref_org     TEXT,
+            ref_mol     TEXT,
+            ref_acc     TEXT,
+            ref_fmin    INTEGER,
+            ref_fmax    INTEGER,
+            ref_strand  INTEGER,
+            e_value     TEXT
+        );
+CREATE UNIQUE INDEX idx_aligncoords_id ON aligncoords (id);

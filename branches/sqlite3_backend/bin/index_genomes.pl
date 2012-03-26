@@ -20,7 +20,8 @@ from within the conf directory.
 =head1 OUTPUT
 
 Within the project directory a single SQLite3 database file called 'annotation.db'
-will be created.
+will be created.  It will also create an empty 'regions_of_interest' directory if
+one doesn't exist already.
 
 =cut
 
@@ -53,7 +54,6 @@ unless (-e $project_conf_file) {
 
 my $conf = new IniReader("$FindBin::Bin/../conf/$project_conf_file");
 
-
 ## key = org abbreviation, value = GFF3 path
 my $orgs = get_organisms_from_conf( $conf );
 
@@ -72,9 +72,11 @@ unless (-d $roi_dir) {
 
 
 my $db_file = "$data_dir/annotation.db";
+my $coord_files = get_coordfiles_from_conf( $conf );
 
 ## create the db index if it doesn't exist already
 my $next_gene_id = 1;
+my $next_aligncoords_id = 1; 
 
 if ( -f $db_file ) {
     
@@ -93,7 +95,7 @@ if ( -f $db_file ) {
     #       http://www.sqlite.org/faq.html#q19
     $dbh->do("PRAGMA synchronous=OFF");
     
-    initialize_database( $dbh, $db_file, $orgs );
+    initialize_database( $dbh, $orgs, $coord_files );
     $dbh->disconnect();
 }
 
@@ -102,19 +104,31 @@ if ( -f $db_file ) {
 exit(0);
 
 
+sub get_coordfiles_from_conf {
+    my $config = shift;
+    
+    my @synteny_labels = $conf->get_section_attributes("Synteny");
+    my @syn_files;
+    
+    foreach my $synteny_label (@synteny_labels) {
+        my $syn_filename = $conf->get_value("Synteny", $synteny_label);
+        push (@syn_files, $syn_filename);
+    }
+    
+    return \@syn_files;
+}
+
 
 sub get_organisms_from_conf {
     my $config = shift;
 
     my @organisms = split (/,/, $conf->get_value("Meta", "Organisms"));
-    
     my $data = {};
     
     print STDERR "Got organisms: @organisms\n";
 
     foreach my $org (@organisms) {
         $org =~ s/\s+//g;
-        
         $$data{$org} = $conf->get_value("Genes", $org);
     }
     
@@ -122,8 +136,10 @@ sub get_organisms_from_conf {
 }
 
 
+## schema changes here should be reflected in documentation updates
+#   in doc/SCHEMA
 sub initialize_database {
-    my ($dbh, $file, $orgs) = @_;
+    my ($dbh, $orgs, $coordfiles) = @_;
     
     my $create_gene_ddl = qq{
         CREATE TABLE gene (
@@ -148,8 +164,8 @@ sub initialize_database {
     
     ## load each of the GFF3 files
     for my $abbreviation ( keys %$orgs ) {
-        print STDERR "INFO: calling load_gff3_file( $insert_gene_dsh, $abbreviation, '$$orgs{$abbreviation}' );\n";
-        load_gff3_file( $insert_gene_dsh, $abbreviation, "$$orgs{$abbreviation}" );
+        print STDERR "INFO: calling load_gff3_file( $insert_gene_dsh, $abbreviation, '$FindBin::Bin/../$$orgs{$abbreviation}' );\n";
+        load_gff3_file( $insert_gene_dsh, $abbreviation, "$FindBin::Bin/../$$orgs{$abbreviation}" );
     }
     
     $insert_gene_dsh->finish();
@@ -158,6 +174,96 @@ sub initialize_database {
     $dbh->do("CREATE UNIQUE INDEX idx_gene_id ON gene (gene_id)");
     $dbh->do("CREATE INDEX idx_molecule ON gene (molecule)");
     $dbh->do("CREATE INDEX idx_name ON gene (name)");
+    
+    my $create_aligncoords_ddl = qq{
+        CREATE TABLE aligncoords (
+            id          INTEGER,
+            qry_org     TEXT,
+            qry_mol     TEXT,
+            qry_acc     TEXT,
+            qry_fmin    INTEGER,
+            qry_fmax    INTEGER,
+            qry_strand  INTEGER,
+            ref_org     TEXT,
+            ref_mol     TEXT,
+            ref_acc     TEXT,
+            ref_fmin    INTEGER,
+            ref_fmax    INTEGER,
+            ref_strand  INTEGER,
+            e_value     TEXT
+        )
+    };
+    $dbh->do( $create_aligncoords_ddl );
+    
+    my $insert_alncoord_dml = qq{
+        INSERT INTO aligncoords
+        VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,? );
+    };
+    my $insert_alncoord_dsh = $dbh->prepare($insert_alncoord_dml);
+    
+    for my $file ( @$coordfiles ) {
+        print STDERR "loading alignment coordinates from file: $file\n";
+        load_aligncoord_file( $insert_alncoord_dsh, "$FindBin::Bin/../$file" );
+    }
+    
+    $insert_alncoord_dsh->finish();
+    
+    ## add the indexes
+    $dbh->do("CREATE UNIQUE INDEX idx_aligncoords_id ON aligncoords (id)");
+}
+
+sub load_aligncoord_file {
+    my ($dsh, $file) = @_;
+    
+    open(my $ifh, $file) || die "can't read aligncoord file ($file): $!";
+    
+    while ( my $line = <$ifh> ) {
+        chomp $line;
+        my @cols = split("\t", $line);
+        
+        next unless scalar @cols == 14;
+        
+        my ($qry_fmin, $qry_fmax, $qry_strand) = tigr_to_interbase($cols[3], $cols[4]);
+        my ($ref_fmin, $ref_fmax, $ref_strand) = tigr_to_interbase($cols[10], $cols[11]);
+        
+        my @insert_data = (
+            $next_aligncoords_id++,     # id
+            $cols[0],                   # qry_org
+            $cols[1],                   # qry_mol
+            $cols[2],                   # qry_acc
+            $qry_fmin,                  
+            $qry_fmax,
+            $qry_strand,
+            $cols[7],                   # ref_org
+            $cols[8],                   # ref_mol
+            $cols[9],                   # ref_acc
+            $ref_fmin,
+            $ref_fmax,
+            $ref_strand,
+            $cols[13],                  # e_value
+        );
+        
+        $dsh->execute( @insert_data );
+        $next_aligncoords_id++;
+    }
+}
+
+sub tigr_to_interbase {
+    my ($end5, $end3) = @_;
+    my ($fmin, $fmax, $strand);
+    
+    if ( $end5 <= $end3 ) {
+        $fmin = $end5 - 1;
+        $fmax = $end3;
+        $strand = 1;
+        
+    } else {
+        $fmin = $end3 - 1;
+        $fmax = $end5;
+        $strand = -1;
+    }
+    
+    return ($fmin, $fmax, $strand);
 }
 
 sub load_gff3_file {
