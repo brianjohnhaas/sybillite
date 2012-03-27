@@ -101,10 +101,9 @@ sub createSyntenyPlot {
 	}
 	
 	## parse the input files
-	my %syn_gene_pairs = &parse_syn_gene_pairs($synGenePairs, $refScaffold);
+    my $syn_gene_pairs = &parse_syn_gene_pairs($options{dbh}, $refScaffold);
 	
 	my $scaffold_to_gene_structs = &parse_gene_coords($options{dbh});
-	
 	
 	# transpose the scaffold to gene data
 	my %gene_acc_to_gene_struct = &transpose_scaffold_genes_list_to_gene_acc_lookup($scaffold_to_gene_structs);
@@ -118,7 +117,7 @@ sub createSyntenyPlot {
     print $LOG_OFH  "RefScaff: $refScaffold ($refScaffLend - $refScaffRend)\n" if $DEBUG;
     
 	## pull out the syntenic scaffolds and genes found syntenic to the reference scaffold range of interest.
-	my %syntenic_scaffolds_to_genes = &extract_scaffolds_syntenic_to_ref_scaffold($refScaffold, [$refScaffLend, $refScaffRend], $scaffold_to_gene_structs, \%gene_acc_to_gene_struct, \%syn_gene_pairs);
+	my %syntenic_scaffolds_to_genes = &extract_scaffolds_syntenic_to_ref_scaffold($refScaffold, [$refScaffLend, $refScaffRend], $scaffold_to_gene_structs, \%gene_acc_to_gene_struct, $syn_gene_pairs);
 
     #print $LOG_OFH "\n\n## Syntenic scaffolds to genes:\n" . Dumper(\%syntenic_scaffolds_to_genes) if $DEBUG;
 	
@@ -127,7 +126,7 @@ sub createSyntenyPlot {
 	my ($ref_org, $trash) = split (/;/, $refScaffold);
 	my %syn_org_to_scaffolds = ( $ref_org => [$refScaffold] ); # init to ref info.
 	my %syn_contig_to_seq_range  = ( $refScaffold => { lend => $refScaffLend, rend => $refScaffRend, ref_lend => $refScaffLend, ref_rend => $refScaffRend } ); # init reference info.
-	&assign_syntenic_contig_seq_ranges(\%syntenic_scaffolds_to_genes, \%syn_org_to_scaffolds, \%syn_gene_pairs, \%syn_contig_to_seq_range, \%gene_acc_to_gene_struct, $refScaffold, [$refScaffLend, $refScaffRend]);	
+	&assign_syntenic_contig_seq_ranges(\%syntenic_scaffolds_to_genes, \%syn_org_to_scaffolds, $syn_gene_pairs, \%syn_contig_to_seq_range, \%gene_acc_to_gene_struct, $refScaffold, [$refScaffLend, $refScaffRend]);	
 	
 	print $LOG_OFH "## Syntenic org to scaffolds: " . Dumper(\%syn_org_to_scaffolds) if $DEBUG;
     print $LOG_OFH "## Syntenic contig to seq range: " . Dumper(\%syn_contig_to_seq_range) if $DEBUG;
@@ -213,7 +212,7 @@ sub createSyntenyPlot {
 					my $syn_orient = ($scaffold eq $refScaffold) ? '+' : &estimate_synteny_orientation($scaffold, [$rangeLend, $rangeRend], 
 																									   $refScaffold, [$range_coords_href->{ref_lend}, $range_coords_href->{ref_rend}],
 																									   $scaffold_to_gene_structs,
-																									   \%syn_gene_pairs,
+																									   $syn_gene_pairs,
 																									   \%gene_acc_to_gene_struct, 
                                                                                                        \%syntenic_scaffolds_to_genes);
 					
@@ -366,8 +365,8 @@ sub createSyntenyPlot {
 	## sort genes according to molecule order
 	my @syn_pairs;
 	
-	foreach my $gene_acc (keys %syn_gene_pairs) {
-		my $syn_gene_accs_href = $syn_gene_pairs{$gene_acc};
+	foreach my $gene_acc (keys %$syn_gene_pairs) {
+		my $syn_gene_accs_href = $$syn_gene_pairs{$gene_acc};
 		foreach my $syn_acc (keys %$syn_gene_accs_href) {
 			my $pair = join ("_", sort ($gene_acc, $syn_acc));
 			if ($seen{$pair}) { next; }
@@ -529,32 +528,28 @@ sub createSyntenyPlot {
 }
 
 
-####
 sub parse_syn_gene_pairs {
-	my ($fileListString, $refScaffold) = @_;
-	
-	my %synPairs;
-	## store A-> B and B-> A links.
-	
-	foreach my $file (split (/,/, $fileListString)) {
-		$file =~ s/\s//g;
-		
-		open (my $fh, $file) or die "Error, cannot open file $file";
-		while (<$fh>) {
-			chomp;
-			if (/^\#/) { next; }
-			unless (/\w/) { next; }
-			my @x = split (/\t/);
-			#if (lc($x[0]) eq lc($refScaffold) || lc($x[4]) eq lc($refScaffold)) {
-				my ($accA, $accB) = ($x[2], $x[9]);
-				$synPairs{$accA}->{$accB} = 1;
-				$synPairs{$accB}->{$accA} = 1;
-			#}
-		}
-		close $fh;
-	}
-	
-	return(%synPairs);
+    my ($dbh, $qry_scaffold) = @_;
+    
+    print STDERR "INFO: parse_syn_gene_pairs from db for qry scaffold: $qry_scaffold\n";
+    
+	my $synPairs;
+    
+    my $qry = qq{
+        SELECT qry_acc, ref_acc
+          FROM aligncoords
+    };
+    my $dsh = $dbh->prepare($qry);
+       $dsh->execute( );
+    
+    while ( my $row = $dsh->fetchrow_hashref ) {
+        $$synPairs{$$row{qry_acc}}{$$row{ref_acc}} = 1;
+        $$synPairs{$$row{ref_acc}}{$$row{qry_acc}} = 1;
+    }
+    
+    $dsh->finish();
+    
+    return $synPairs;
 }
 
 
