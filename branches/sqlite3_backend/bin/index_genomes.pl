@@ -210,6 +210,8 @@ sub initialize_database {
     
     ## add the indexes
     $dbh->do("CREATE UNIQUE INDEX idx_aligncoords_id ON aligncoords (id)");
+    $dbh->do("CREATE INDEX idx_qry_org ON aligncoords (qry_org)");
+    $dbh->do("CREATE INDEX idx_qry_mol ON aligncoords (qry_mol)");
 }
 
 sub load_aligncoord_file {

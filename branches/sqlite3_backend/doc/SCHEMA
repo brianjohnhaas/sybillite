@@ -31,3 +31,5 @@ CREATE TABLE aligncoords (
             e_value     TEXT
         );
 CREATE UNIQUE INDEX idx_aligncoords_id ON aligncoords (id);
+CREATE INDEX idx_qry_org ON aligncoords (qry_org);
+CREATE INDEX idx_qry_mol ON aligncoords (qry_mol);
