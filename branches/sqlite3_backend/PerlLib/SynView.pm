@@ -11,6 +11,7 @@ use FindBin;
 use lib ("/util/lib/perl5/site_perl/5.8.8/", "$FindBin::Bin/PerlLib", "$FindBin::Bin/../PerlLib");
 use DPchain;
 use Carp;
+use Storable;
 
 
 # prepare for graphics drawing.
@@ -101,9 +102,25 @@ sub createSyntenyPlot {
 	}
 	
 	## parse the input files
-    my $syn_gene_pairs = &parse_syn_gene_pairs($options{dbh}, $refScaffold);
+    my $syn_gene_pairs;
+    
+    print STDERR "looking for: $options{aligncoords_stor_file}";
+    
+    if ( -e $options{aligncoords_stor_file} ) {
+        $syn_gene_pairs = retrieve( $options{aligncoords_stor_file} );
+    } else {
+        $syn_gene_pairs = &parse_syn_gene_pairs($options{dbh}, $refScaffold);
+        store $syn_gene_pairs, $options{aligncoords_stor_file};
+    }
 	
-	my $scaffold_to_gene_structs = &parse_gene_coords($options{dbh});
+	my $scaffold_to_gene_structs;
+    
+    if ( -e $options{gene_stor_file} ) {
+        $scaffold_to_gene_structs = retrieve( $options{gene_stor_file} );
+    } else {
+        $scaffold_to_gene_structs = &parse_gene_coords($options{dbh});
+        store $scaffold_to_gene_structs, $options{gene_stor_file};
+    }
 	
 	# transpose the scaffold to gene data
 	my %gene_acc_to_gene_struct = &transpose_scaffold_genes_list_to_gene_acc_lookup($scaffold_to_gene_structs);

@@ -58,6 +58,8 @@ my $PURGE_CACHE = $params->{PURGE_CACHE} ? 1 : 0;
 my $DEBUG = $params->{DEBUG} || 0;
 
 my $db_file = "./data/$project/annotation.db";
+my $gene_stor_file = "./tmp/$project.gene.storable";
+my $aligncoords_stor_file = "./tmp/$project.aligncoords.storable";
 my $dbh = DBI->connect( "dbi:SQLite:$db_file" ) || die "Cannot connect: $DBI::errstr";
 
 ## this will ultimately be transformed into a JSON structure and printed
@@ -193,6 +195,8 @@ if ( $scaffold ) {
                              "showAllVsAll" => $showAllVsAll,
                              "feature" => $params{feature},  # gene_id, trans_id, or locus value, enables highlighting of feature of interest in image.
                              dbh => $dbh,
+                             gene_stor_file => $gene_stor_file,
+                             aligncoords_stor_file => $aligncoords_stor_file,
                              params => \%params,
                              );
 
