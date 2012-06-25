@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl 
 
 =head1 DESCRIPTION
 
@@ -27,6 +27,8 @@ will be created.  If it already exists it will be removed and replaced.
 =cut
 
 use strict;
+use warnings;
+
 use DBI;
 use FindBin;
 use File::Copy;
@@ -247,7 +249,7 @@ sub load_aligncoord_file {
         chomp $line;
         my @cols = split("\t", $line);
         
-        next unless scalar @cols == 14;
+        next unless scalar @cols >= 14;
         
         my ($qry_fmin, $qry_fmax, $qry_strand) = tigr_to_interbase($cols[3], $cols[4]);
         my ($ref_fmin, $ref_fmax, $ref_strand) = tigr_to_interbase($cols[10], $cols[11]);
