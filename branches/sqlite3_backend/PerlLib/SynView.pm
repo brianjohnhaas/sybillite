@@ -84,6 +84,7 @@ sub createSyntenyPlot {
 	
     if ($DEBUG) {
         open ($LOG_OFH, ">tmp/synview.log") or die $!;
+        open (STDERR, ">&$LOG_OFH");
     }
     
     if ($feature && $DEBUG) {
@@ -418,10 +419,7 @@ sub createSyntenyPlot {
 				($orgA, $orgB) = ($orgB, $orgA);
 			}
 			
-            
-
-			my $org_pair_val = $org_to_order{$orgA} * 10 + $org_to_order{$orgB};
-			push (@syn_pairs, [ [$geneA, $geneB], $org_pair_val]);
+            push (@syn_pairs, [ [$geneA, $geneB], $org_to_order{$orgA}, $org_to_order{$orgB} ]);
 		}
 	}
 	
@@ -431,13 +429,20 @@ sub createSyntenyPlot {
     ## run two rounds of showing matches
     ## in first round, ensure that A has priority
     ## in second round, light up gene B, in a bottom-up way
-    
     %seen = ();
-	
+    
+    my %seen_pair;
+    
+	my %seen_indiv;
+    my %seen_top_down;
+
     for my $round (1, 2) {
     
         if ($round == 1) {
-            @syn_pairs = sort {$a->[1] <=> $b->[1]} @syn_pairs;
+            @syn_pairs = sort {$a->[1] <=> $b->[1]
+                                   ||
+                                   $a->[2] <=>$b->[2] 
+                               } @syn_pairs;
         }
         else {
             @syn_pairs = reverse @syn_pairs; # for bottom-up drawing
@@ -450,18 +455,30 @@ sub createSyntenyPlot {
             
             if (! $showAllVsAll) {
                 
-                if ($round == 1 && $seen{$geneA}) {
-                    next;
+                if ($round == 1) {
+                    
+                    if ($seen_top_down{$geneA}) {
+                        next;
+                    }
+                    $seen_top_down{$geneA} = 1;
+                    $seen_indiv{$geneA} = 1;
+                    $seen_indiv{$geneB} = 1;
+                    $seen_pair{$geneA}->{$geneB} = 1;
                 }
-                elsif ($round == 2 && $seen{$geneA} && $seen{$geneB}) {
-                    next;
+                elsif($round == 2) {
+
+                    
+                    
+                    if ($seen_indiv{$geneB} || $seen_pair{$geneA}->{$geneB}) {
+                        next;
+                    }
+                    
+                    $seen_indiv{$geneB} = 1;
+                    $seen_pair{$geneA}->{$geneB} = 1;
                 }
+                                                
             }
-            
-            $seen{$geneA} = 1; 
-            $seen{$geneB} = 1;
-            
-            
+                        
             my $geneA_orient = $geneA->{orient};
             my $geneB_orient = $geneB->{orient};
             
